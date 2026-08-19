@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transcritor de Documentos</title>
+  <style>
+    :root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    header { background: #172033; color: white; padding: 20px 32px; }
+    header strong { font-size: 20px; }
+    main { width: min(1180px, calc(100% - 32px)); margin: 32px auto; }
+    .grid { display: grid; grid-template-columns: 360px 1fr; gap: 24px; }
+    .card { background: white; border: 1px solid #e3e7ef; border-radius: 14px; padding: 22px; box-shadow: 0 4px 18px rgba(23,32,51,.05); }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 0 0 18px; font-size: 18px; }
+    .muted { color: #68738a; font-size: 14px; }
+    label { display: block; margin: 16px 0 7px; font-weight: 600; font-size: 14px; }
+    select, input[type=file] { width: 100%; padding: 11px; border: 1px solid #ccd3df; border-radius: 9px; background: white; }
+    button { border: 0; border-radius: 9px; padding: 12px 16px; cursor: pointer; font-weight: 700; }
+    #enviar { width: 100%; margin-top: 18px; background: #2563eb; color: white; }
+    #enviar:disabled { opacity: .55; cursor: not-allowed; }
+    .status { margin-top: 18px; padding: 12px; border-radius: 9px; background: #f1f5f9; font-size: 14px; white-space: pre-wrap; }
+    .error { background: #fff1f2; color: #b42318; }
+    .success { background: #ecfdf3; color: #067647; }
+    .results { overflow: auto; }
+    .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+    .toolbar button { background: #e8eefb; color: #17408c; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 760px; }
+    th, td { border-bottom: 1px solid #e8ebf1; padding: 10px 8px; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; position: sticky; top: 0; }
+    code { background: #f1f5f9; padding: 2px 5px; border-radius: 5px; }
+    .empty { text-align: center; padding: 48px 12px; color: #68738a; }
+    @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } header { padding: 18px; } }
+  </style>
+</head>
+<body>
+  <header><strong>Desafio Rafael — Transcrição de Documentos</strong></header>
+  <main>
+    <div class="grid">
+      <section class="card">
+        <h1>Enviar documento</h1>
+        <p class="muted">Envie um PDF para processamento. O resultado segue o mesmo contrato JSON usado pela API.</p>
+        <form id="form">
+          <label for="tipo">Tipo de documento</label>
+          <select id="tipo" name="tipo" required>
+            <option value="holerite">Holerite</option>
+            <option value="cartao-ponto">Cartão de ponto</option>
+          </select>
+          <label for="arquivo">Arquivo PDF</label>
+          <input id="arquivo" name="arquivo" type="file" accept="application/pdf" required>
+          <button id="enviar" type="submit">Enviar e processar</button>
+        </form>
+        <div id="status" class="status">Aguardando arquivo.</div>
+      </section>
+      <section class="card results">
+        <div class="toolbar">
+          <div><h2>Resultado da transcrição</h2><span id="meta" class="muted">Nenhuma transcrição carregada.</span></div>
+          <button id="json" type="button" disabled>Ver JSON</button>
+        </div>
+        <div id="resultado" class="empty">O resultado aparecerá aqui após o processamento.</div>
+      </section>
+    </div>
+  </main>
+<script>
+  const form = document.getElementById('form');
+  const arquivo = document.getElementById('arquivo');
+  const enviar = document.getElementById('enviar');
+  const statusEl = document.getElementById('status');
+  const resultadoEl = document.getElementById('resultado');
+  const metaEl = document.getElementById('meta');
+  const jsonBtn = document.getElementById('json');
+  let ultimoResultado = null;
+
+  function status(texto, classe = '') { statusEl.textContent = texto; statusEl.className = `status ${classe}`; }
+  function escapeHtml(v) { return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+  function renderizar(resultado) {
+    ultimoResultado = resultado;
+    jsonBtn.disabled = false;
+    const paginas = resultado?.value?.pages || [];
+    metaEl.textContent = `${resultado.tipo || '?'} • ${resultado.status} • ${paginas.length} página(s)`;
+    if (!paginas.length) { resultadoEl.innerHTML = '<div class="empty">Nenhum dado estruturado foi retornado.</div>'; return; }
+    let html = '';
+    paginas.forEach(p => {
+      html += `<h3>Página ${escapeHtml(p.page)} — ${escapeHtml(p.month)}/${escapeHtml(p.year)}</h3>`;
+      if (resultado.tipo === 'cartao-ponto') {
+        const rows = p.fields || [];
+        html += `<table><thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Entrada</th><th>Saída</th><th>Total</th></tr></thead><tbody>`;
+        rows.forEach(r => html += `<tr><td>${escapeHtml(r.date || r.data || '?')}</td><td>${escapeHtml(r.entrada1 || r.entry1 || '?')}</td><td>${escapeHtml(r.saida1 || r.exit1 || '?')}</td><td>${escapeHtml(r.entrada2 || r.entry2 || '?')}</td><td>${escapeHtml(r.saida2 || r.exit2 || '?')}</td><td>${escapeHtml(r.total || '?')}</td></tr>`);
+        html += '</tbody></table>';
+      } else {
+        html += `<table><thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Valor</th></tr></thead><tbody>`;
+        (p.fields || []).forEach(f => html += `<tr><td><code>${escapeHtml(f.code || '?')}</code></td><td>${escapeHtml(f.label || '?')}</td><td>${escapeHtml(f.reference || '?')}</td><td>${escapeHtml(f.value || '?')}</td></tr>`);
+        html += '</tbody></table>';
+        if ((p.bases || []).length) {
+          html += '<h4>Bases</h4><table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>';
+          p.bases.forEach(b => html += `<tr><td>${escapeHtml(b.label || '?')}</td><td>${escapeHtml(b.value || '?')}</td></tr>`);
+          html += '</tbody></table>';
+        }
+      }
+    });
+    resultadoEl.innerHTML = html;
+  }
+
+  async function consultar(id) {
+    const resposta = await fetch(`/api/transcricoes/${id}`);
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.erro || 'Falha ao consultar transcrição.');
+    return dados;
+  }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!arquivo.files[0]) return;
+    enviar.disabled = true; status('Enviando arquivo...');
+    try {
+      const fd = new FormData(form);
+      const upload = await fetch('/api/transcricoes', { method: 'POST', body: fd });
+      const inicio = await upload.json();
+      if (!upload.ok) throw new Error(inicio.erro || 'Falha no upload.');
+      status(`Arquivo recebido. ID: ${inicio.id}\nProcessando...`);
+      let dados;
+      for (let i = 0; i < 120; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        dados = await consultar(inicio.id);
+        if (dados.status !== 'processando') break;
+      }
+      renderizar(dados);
+      if (dados.status === 'concluido') status('Transcrição concluída.', 'success');
+      else status(`Processamento terminou com status: ${dados.status}\n${dados.erro || ''}`, 'error');
+    } catch (err) { status(err.message, 'error'); }
+    finally { enviar.disabled = false; }
+  });
+
+  jsonBtn.addEventListener('click', () => {
+    if (!ultimoResultado) return;
+    const blob = new Blob([JSON.stringify(ultimoResultado, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `${ultimoResultado.id || 'transcricao'}.json`; a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>
