@@ -6,6 +6,7 @@ import { routerHealth, routerTranscricoes } from './router.js';
 
 const app = express();
 
+// A interface fica no mesmo servidor da API.
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
