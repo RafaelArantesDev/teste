@@ -4,9 +4,13 @@ Este documento descreve como executar a aplicação, as principais decisões té
 
 ## 1. Aplicação publicada
 
-**URL da aplicação publicada:** não foi possível confirmar uma URL pública de produção a partir do repositório e dos materiais disponíveis durante esta revisão.
+**URL pública:** https://quick-filler-rafael.onrender.com
 
-A aplicação está preparada para execução local e em container na porta `3000`. Antes da entrega final, caso exista um deploy público, a URL deve ser colocada aqui e também no README.
+**Health check:** https://quick-filler-rafael.onrender.com/healthz
+
+O deploy foi realizado no Render usando o `Dockerfile` do projeto. A aplicação foi validada na URL pública com os fluxos principais: carregamento do frontend, health check, upload de PDFs, processamento, OCR quando necessário, revisão manual e exportação dos resultados.
+
+A instância utilizada é a modalidade gratuita do Render. Após períodos de inatividade o serviço pode entrar em suspensão; por isso, a primeira requisição depois de um período sem uso pode levar aproximadamente 50 segundos ou mais para responder.
 
 ## 2. Como executar
 
@@ -15,7 +19,7 @@ A aplicação está preparada para execução local e em container na porta `300
 Pré-requisito: Docker Desktop/Docker Engine com Docker Compose.
 
 ```bash
-git clone <URL_DO_REPOSITORIO>
+git clone https://github.com/RafaelArantesDev/teste.git
 cd teste
 docker compose up --build
 ```
@@ -31,7 +35,7 @@ Para encerrar:
 docker compose down
 ```
 
-O Dockerfile usa Node.js 22 sobre Debian Bookworm Slim, instala somente dependências de produção, cria os diretórios temporários necessários, expõe a porta 3000 e possui `HEALTHCHECK` HTTP em `/healthz`.
+O Dockerfile usa Node.js 22 sobre Debian Bookworm Slim, instala somente dependências de produção, cria os diretórios temporários necessários, expõe a porta da aplicação e possui `HEALTHCHECK` HTTP em `/healthz`. Em hospedagem, o servidor utiliza `process.env.PORT` e escuta em `0.0.0.0`.
 
 ### Execução sem Docker
 
@@ -128,6 +132,12 @@ Além do MIME recebido no multipart, o arquivo salvo é inspecionado com `file-t
 
 Foi escolhida a imagem Node 22 porque dependências atuais do projeto exigem uma versão moderna do Node. O Compose expõe a aplicação na porta 3000 e monta os diretórios temporários utilizados pelo processamento.
 
+### 4.10 Deploy no Render
+
+O serviço publicado usa o mesmo `Dockerfile` validado localmente. O Render fornece a porta por variável de ambiente, e o servidor foi preparado para escutar em `0.0.0.0`. O health check configurado é `/healthz`.
+
+Essa abordagem reduz diferenças entre o ambiente local e o ambiente publicado.
+
 ## 5. API principal
 
 - `GET /healthz` — saúde da aplicação.
@@ -196,30 +206,32 @@ Além da suíte automatizada, esses arquivos foram usados repetidamente para val
 - **4 layouts/famílias de holerite** representados no conjunto principal.
 - **4 layouts/famílias de cartão de ponto** representados no conjunto principal.
 - **3 formatos de exportação** exercitados pela funcionalidade: XLSX, CSV e JSON.
+- **Deploy público validado** com os dois tipos documentais e o fluxo de exportação.
 
 Não é apresentada uma porcentagem artificial de “acurácia do OCR”. O conjunto disponível é pequeno e heterogêneo, e uma porcentagem calculada apenas sobre esses exemplos daria uma impressão de generalização que o projeto não consegue demonstrar. Da mesma forma, o projeto não possui instrumentação de cobertura de linhas, portanto não é declarado um percentual de code coverage sem medi-lo.
 
 ## 7. Validação manual de entrega
 
-Antes da entrega final, executar:
+A versão final foi validada localmente e na URL pública. O checklist utilizado foi:
+
+1. `GET /healthz` retorna HTTP 200.
+2. Interface abre na raiz.
+3. Upload válido retorna um ID e chega a `concluido`.
+4. PDF inválido é recusado.
+5. Holerites são comparados visualmente com seus PDFs.
+6. Cartões de ponto são comparados visualmente com seus PDFs.
+7. Campo incorreto pode ser editado.
+8. Campo/dia não reconhecido pode ser preenchido manualmente nos casos suportados.
+9. Alterações podem ser salvas.
+10. XLSX, CSV e JSON podem ser gerados a partir do resultado revisado.
+11. Os fluxos principais foram repetidos pela URL pública do Render.
+
+Para repetir localmente:
 
 ```bash
 npm test
 docker compose up --build
 ```
-
-Depois validar:
-
-1. `GET /healthz` retorna HTTP 200 e `{ "resultado": "ok" }`.
-2. Interface abre na raiz.
-3. Upload válido retorna um ID e chega a `concluido`.
-4. PDF inválido é recusado.
-5. Cada família de holerite é comparada visualmente com seu PDF.
-6. Cada família de cartão de ponto é comparada visualmente com seu PDF.
-7. Campo incorreto pode ser editado.
-8. Campo/dia não reconhecido pode ser preenchido manualmente nos casos suportados.
-9. Alterações podem ser salvas.
-10. XLSX, CSV e JSON podem ser gerados a partir do resultado revisado.
 
 ## 8. O que ficou de fora / o que implementar para produção
 
@@ -249,6 +261,10 @@ Existem logs de execução, mas não métricas operacionais, tracing, dashboard,
 
 Uma implantação real deveria acrescentar políticas de autenticação, rate limiting, headers de segurança, gestão de segredos, TLS na borda, auditoria e políticas de retenção adequadas à natureza dos documentos.
 
+### Limitações do plano gratuito do Render
+
+A instância pode entrar em suspensão por inatividade e possui recursos reduzidos. Além disso, a solução atual não depende de persistência local durável: filesystem e memória não devem ser tratados como armazenamento permanente em produção.
+
 ### Generalização para layouts desconhecidos
 
 Os extratores foram fortalecidos contra os layouts do conjunto fornecido, mas documentos totalmente diferentes podem exigir novas regras. Não é correto afirmar que regex/OCR determinístico generaliza para qualquer holerite ou cartão de ponto existente.
@@ -259,7 +275,7 @@ Ficou de fora uma base anotada (“ground truth”) grande o suficiente para med
 
 ### CI/CD
 
-A suíte pode ser executada por `npm test`, mas uma pipeline automatizada de CI/CD com testes, build da imagem e deploy não faz parte da solução atual documentada.
+A suíte pode ser executada por `npm test` e o Render está configurado para deploy a partir da branch principal, mas uma pipeline completa de CI com testes obrigatórios antes do deploy não faz parte da solução atual.
 
 ## 9. Principal risco técnico
 
