@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Transcritor de Documentos</title>
+  <title>Quick Filler — Transcrição de Documentos</title>
   <style>
     :root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f5f7fb; }
     * { box-sizing: border-box; }
@@ -22,7 +22,7 @@
     .muted { color: #68738a; font-size: 13px; }
     label { display: block; margin: 15px 0 7px; font-weight: 700; font-size: 14px; }
     select, input[type=file] { width: 100%; padding: 11px; border: 1px solid #ccd3df; border-radius: 9px; background: white; }
-    button { border: 0; border-radius: 9px; padding: 11px 15px; cursor: pointer; font-weight: 750; }
+    button { border: 0; border-radius: 9px; padding: 11px 15px; cursor: pointer; font-weight: 700; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     #enviar { width: 100%; margin-top: 18px; background: #2563eb; color: white; }
     .status { margin-top: 16px; padding: 11px; border-radius: 9px; background: #f1f5f9; font-size: 13px; white-space: pre-wrap; }
@@ -34,10 +34,10 @@
     .toolbar .xlsx { background: #dcfce7; color: #166534; }
     .toolbar .csv { background: #fef3c7; color: #92400e; }
     .toolbar .json { background: #e8eefb; color: #17408c; }
+    .small-action { background: #eef2ff; color: #3730a3; padding: 7px 10px; font-size: 12px; margin-top: 8px; }
     .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
-    .badge { display: inline-flex; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 750; }
+    .badge { display: inline-flex; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700; }
     .badge.warning { background: #fff3cd; color: #7c5a00; }
-    .badge.danger { background: #f8d7da; color: #842029; }
     .table-wrap { overflow: auto; border: 1px solid #e6eaf1; border-radius: 9px; max-height: 62vh; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
     th, td { border-bottom: 1px solid #e8ebf1; padding: 7px; text-align: left; vertical-align: middle; }
@@ -45,7 +45,8 @@
     tr.warning td { background: #fff3cd; }
     tr.danger td { background: #f8d7da; }
     tr.danger td:first-child { border-left: 4px solid #dc3545; }
-    td input { width: 100%; min-width: 90px; padding: 7px; border: 1px solid #cdd5e2; border-radius: 6px; background: rgba(255,255,255,.88); color: #172033; }
+    td input { width: 100%; min-width: 90px; padding: 7px; border: 1px solid #cdd5e2; border-radius: 6px; background: rgba(255,255,255,.9); color: #172033; }
+    td input.blank { background: white; border-style: dashed; }
     td input.unknown { border-color: #d97706; font-weight: 800; color: #92400e; }
     .empty { text-align: center; padding: 42px 12px; color: #68738a; }
     .legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 14px; font-size: 12px; color: #475569; }
@@ -53,8 +54,9 @@
     .legend .yellow::before { background: #fff3cd; border: 1px solid #eed98e; }
     .legend .red::before { background: #f8d7da; border-left: 3px solid #dc3545; }
     details { margin-top: 12px; }
-    details summary { cursor: pointer; font-weight: 750; }
+    details summary { cursor: pointer; font-weight: 700; }
     .detail-page { border: 1px solid #e6eaf1; border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .json-preview pre { max-height: 260px; overflow: auto; padding: 12px; border-radius: 8px; background: #0f172a; color: #e2e8f0; font-size: 11px; }
     @media (max-width: 1050px) { .workspace { grid-template-columns: 1fr; } .pdf-frame { height: 60vh; } }
     @media (max-width: 760px) { .upload-grid { grid-template-columns: 1fr; } header { padding: 18px; } main { width: min(100% - 18px, 1500px); margin: 18px auto; } }
@@ -66,7 +68,7 @@
     <div class="upload-grid">
       <section class="card">
         <h1>Enviar PDF</h1>
-        <p class="muted">Escolha o tipo, envie o documento e aguarde o processamento. Valores incertos permanecem marcados com <strong>?</strong>.</p>
+        <p class="muted">Envie o documento, confira o PDF e preencha manualmente qualquer campo que o OCR não tenha reconhecido.</p>
         <form id="form">
           <label for="tipo">Tipo de documento</label>
           <select id="tipo" name="tipo" required>
@@ -81,7 +83,7 @@
       </section>
       <section class="card">
         <h2>Fluxo de revisão</h2>
-        <p class="muted">1. Confira o PDF. 2. Corrija as células necessárias. 3. Salve as correções. 4. Baixe a planilha.</p>
+        <p class="muted">1. Confira o PDF. 2. Corrija ou complete as células. 3. Salve. 4. Baixe a planilha.</p>
         <div class="legend">
           <span class="yellow">Revisar: incerteza, batida ímpar ou página vazia</span>
           <span class="red">Revisar: data ou competência não sequencial</span>
@@ -108,11 +110,12 @@
         </div>
         <div id="resumo" class="summary"></div>
         <div id="resultado" class="empty">O resultado aparecerá aqui após o processamento.</div>
-        <details id="detalhes" hidden><summary>Editar detalhes do holerite (código, descrição, referência e bases)</summary><div id="detalhesConteudo"></div></details>
+        <details id="detalhes" hidden><summary>Editar detalhes do holerite</summary><div id="detalhesConteudo"></div></details>
         <details id="jsonPreview" class="json-preview" hidden><summary>Visualizar JSON atual</summary><pre id="jsonText"></pre></details>
       </section>
     </div>
   </main>
+
 <script>
   const form = document.getElementById('form');
   const arquivo = document.getElementById('arquivo');
@@ -136,30 +139,31 @@
   let ultimoResultado = null;
   let alterado = false;
 
-  function status(texto, classe = '') {
-    statusEl.textContent = texto;
-    statusEl.className = `status ${classe}`;
-  }
-
-  function escapeHtml(valor) {
-    return String(valor ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
-  }
-
+  function status(texto, classe = '') { statusEl.textContent = texto; statusEl.className = `status ${classe}`; }
+  function escapeHtml(valor) { return String(valor ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c])); }
   function possuiInterrogacao(valor) { return String(valor ?? '').includes('?'); }
   function valorObrigatorio(valor) { return valor === null || valor === undefined || String(valor).trim() === '' ? '?' : String(valor); }
-  function habilitarResultado(habilitar) { botoesResultado.forEach(botao => { botao.disabled = !habilitar; }); }
   function paginas() { return Array.isArray(ultimoResultado?.value?.pages) ? ultimoResultado.value.pages : []; }
+  function habilitarResultado(habilitar) { botoesResultado.forEach(botao => { botao.disabled = !habilitar; }); }
 
   function inputHtml(valor, caminho, opcoes = {}) {
     const v = opcoes.ausente ? '' : String(valor ?? '');
-    const classe = possuiInterrogacao(v) ? 'unknown' : '';
-    const readonly = opcoes.readonly ? 'readonly' : '';
-    return `<input class="edit ${classe}" data-path="${escapeHtml(caminho)}" value="${escapeHtml(v)}" ${readonly}>`;
+    const classes = ['edit'];
+    if (possuiInterrogacao(v)) classes.push('unknown');
+    if (v === '') classes.push('blank');
+    const extras = [
+      caminho ? `data-path="${escapeHtml(caminho)}"` : '',
+      opcoes.virtualField ? `data-virtual-field="${escapeHtml(opcoes.virtualField)}"` : '',
+      opcoes.virtualPunch !== undefined ? `data-virtual-punch="${opcoes.virtualPunch}"` : '',
+      opcoes.pageIndex !== undefined ? `data-page-index="${opcoes.pageIndex}"` : '',
+      opcoes.dayIndex !== undefined ? `data-day-index="${opcoes.dayIndex}"` : '',
+      opcoes.readonly ? 'readonly' : ''
+    ].filter(Boolean).join(' ');
+    return `<input class="${classes.join(' ')}" value="${escapeHtml(v)}" ${extras}>`;
   }
 
   function lerCompetencia(month, year) {
-    const mes = String(month ?? '').trim();
-    const ano = String(year ?? '').trim();
+    const mes = String(month ?? '').trim(), ano = String(year ?? '').trim();
     if (!/^\d{2}$/.test(mes) || !/^\d{4}$/.test(ano)) return null;
     const m = Number(mes), a = Number(ano);
     return m >= 1 && m <= 12 ? { mes: m, ano: a } : null;
@@ -176,25 +180,19 @@
     if (!m) return null;
     const dia = Number(m[1]), mes = Number(m[2]), ano = Number(m[3]);
     const data = new Date(Date.UTC(ano, mes - 1, dia));
-    if (data.getUTCFullYear() !== ano || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== dia) return null;
-    return data;
+    return data.getUTCFullYear() === ano && data.getUTCMonth() === mes - 1 && data.getUTCDate() === dia ? data : null;
   }
 
-  function atualizarJson() {
-    jsonText.textContent = ultimoResultado ? JSON.stringify(ultimoResultado, null, 2) : '';
-  }
-
-  function classeAviso(aviso, naoSequencial) {
-    return naoSequencial ? 'danger' : aviso ? 'warning' : '';
-  }
+  function atualizarJson() { jsonText.textContent = ultimoResultado ? JSON.stringify(ultimoResultado, null, 2) : ''; }
+  function classeAviso(aviso, naoSequencial) { return naoSequencial ? 'danger' : aviso ? 'warning' : ''; }
 
   function renderizarHolerite() {
     const ps = paginas();
     const labels = [];
     const vistos = new Set();
     ps.forEach(p => (p.fields || []).forEach(f => {
-      const label = valorObrigatorio(f.label);
-      if (!vistos.has(label)) { vistos.add(label); labels.push(label); }
+      const label = String(f?.label ?? '').trim();
+      if (label && label !== '?' && !vistos.has(label)) { vistos.add(label); labels.push(label); }
     }));
 
     let competenciaAnterior = null;
@@ -206,27 +204,28 @@
       const atual = lerCompetencia(p.month, p.year);
       const naoSequencial = Boolean(competenciaAnterior && atual && !competenciaSeguinte(competenciaAnterior, atual));
       if (atual) competenciaAnterior = atual;
-
       const todosValores = [p.month, p.year, ...(p.fields || []).flatMap(f => [f.code, f.label, f.reference, f.value]), ...(p.bases || []).flatMap(b => [b.label, b.value])];
       const paginaVazia = (!p.fields || p.fields.length === 0) && (!p.bases || p.bases.length === 0);
       const aviso = paginaVazia || todosValores.some(possuiInterrogacao);
-      const motivos = [paginaVazia ? 'Página vazia' : '', todosValores.some(possuiInterrogacao) ? 'Há valor incerto (?)' : '', naoSequencial ? 'Competência não sequencial' : ''].filter(Boolean).join(' • ');
 
-      html += `<tr class="${classeAviso(aviso, naoSequencial)}" title="${escapeHtml(motivos)}">`;
+      html += `<tr class="${classeAviso(aviso, naoSequencial)}">`;
       html += `<td>${inputHtml(p.page, `pages.${pi}.page`, { readonly: true })}</td>`;
       html += `<td>${inputHtml(p.month, `pages.${pi}.month`)}</td>`;
       html += `<td>${inputHtml(p.year, `pages.${pi}.year`)}</td>`;
 
       labels.forEach(label => {
-        const fi = (p.fields || []).findIndex(f => valorObrigatorio(f.label) === label);
-        if (fi < 0) html += '<td></td>';
-        else html += `<td>${inputHtml(p.fields[fi].value, `pages.${pi}.fields.${fi}.value`)}</td>`;
+        const fi = (p.fields || []).findIndex(f => String(f?.label ?? '').trim() === label);
+        if (fi >= 0) {
+          html += `<td>${inputHtml(p.fields[fi].value, `pages.${pi}.fields.${fi}.value`)}</td>`;
+        } else {
+          html += `<td>${inputHtml('', '', { ausente: true, virtualField: label, pageIndex: pi })}</td>`;
+        }
       });
       html += '</tr>';
     });
-    html += '</tbody></table></div>';
 
-    resultadoEl.innerHTML = html || '<div class="empty">Nenhuma página retornada.</div>';
+    html += '</tbody></table></div>';
+    resultadoEl.innerHTML = ps.length ? html : '<div class="empty">Nenhuma página retornada.</div>';
     renderizarDetalhesHolerite();
   }
 
@@ -234,22 +233,25 @@
     const ps = paginas();
     detalhes.hidden = false;
     let html = '';
+
     ps.forEach((p, pi) => {
+      if (!Array.isArray(p.fields)) p.fields = [];
+      if (!Array.isArray(p.bases)) p.bases = [];
       html += `<div class="detail-page"><strong>Página ${escapeHtml(valorObrigatorio(p.page))}</strong>`;
-      if (Array.isArray(p.fields) && p.fields.length) {
-        html += '<div class="table-wrap" style="margin-top:8px;max-height:300px"><table><thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Valor</th></tr></thead><tbody>';
-        p.fields.forEach((f, fi) => {
-          html += `<tr><td>${inputHtml(f.code, `pages.${pi}.fields.${fi}.code`)}</td><td>${inputHtml(f.label, `pages.${pi}.fields.${fi}.label`)}</td><td>${inputHtml(f.reference, `pages.${pi}.fields.${fi}.reference`)}</td><td>${inputHtml(f.value, `pages.${pi}.fields.${fi}.value`)}</td></tr>`;
-        });
-        html += '</tbody></table></div>';
-      }
-      if (Array.isArray(p.bases) && p.bases.length) {
-        html += '<div class="table-wrap" style="margin-top:8px;max-height:240px"><table><thead><tr><th>Base/total</th><th>Valor</th></tr></thead><tbody>';
-        p.bases.forEach((b, bi) => html += `<tr><td>${inputHtml(b.label, `pages.${pi}.bases.${bi}.label`)}</td><td>${inputHtml(b.value, `pages.${pi}.bases.${bi}.value`)}</td></tr>`);
-        html += '</tbody></table></div>';
-      }
-      html += '</div>';
+
+      html += '<div class="table-wrap" style="margin-top:8px;max-height:300px"><table><thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Valor</th></tr></thead><tbody>';
+      p.fields.forEach((f, fi) => {
+        html += `<tr><td>${inputHtml(f.code, `pages.${pi}.fields.${fi}.code`)}</td><td>${inputHtml(f.label, `pages.${pi}.fields.${fi}.label`)}</td><td>${inputHtml(f.reference, `pages.${pi}.fields.${fi}.reference`)}</td><td>${inputHtml(f.value, `pages.${pi}.fields.${fi}.value`)}</td></tr>`;
+      });
+      html += '</tbody></table></div>';
+
+      html += '<div class="table-wrap" style="margin-top:8px;max-height:240px"><table><thead><tr><th>Base/total</th><th>Valor</th></tr></thead><tbody>';
+      p.bases.forEach((b, bi) => html += `<tr><td>${inputHtml(b.label, `pages.${pi}.bases.${bi}.label`)}</td><td>${inputHtml(b.value, `pages.${pi}.bases.${bi}.value`)}</td></tr>`);
+      html += '</tbody></table></div>';
+
+      html += `<div class="detail-actions"><button type="button" class="small-action add-field" data-page-index="${pi}">+ Adicionar verba</button><button type="button" class="small-action add-base" data-page-index="${pi}">+ Adicionar base</button></div></div>`;
     });
+
     detalhesConteudo.innerHTML = html;
   }
 
@@ -257,34 +259,43 @@
     detalhes.hidden = true;
     detalhesConteudo.innerHTML = '';
     const ps = paginas();
-    const dias = [];
-    ps.forEach((p, pi) => (p.days || []).forEach((d, di) => dias.push({ p, pi, d, di })));
-    const maxPunches = dias.reduce((max, item) => Math.max(max, item.d.punches?.length || 0), 0);
+    let html = '';
 
-    let html = '<div class="table-wrap"><table><thead><tr><th>Data</th>';
-    for (let i = 0; i < maxPunches; i++) html += `<th>${i % 2 === 0 ? 'Entrada' : 'Saída'} ${Math.floor(i / 2) + 1}</th>`;
-    html += '</tr></thead><tbody>';
+    ps.forEach((p, pi) => {
+      if (!Array.isArray(p.days)) p.days = [];
+      const maxPunches = Math.max(4, ...p.days.map(d => Array.isArray(d.punches) ? d.punches.length : 0));
+      html += `<div class="detail-page"><strong>Página ${escapeHtml(valorObrigatorio(p.page))}</strong>`;
+      html += '<div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Data</th>';
+      for (let i = 0; i < maxPunches; i++) html += `<th>${i % 2 === 0 ? 'Entrada' : 'Saída'} ${Math.floor(i / 2) + 1}</th>`;
+      html += '</tr></thead><tbody>';
 
-    let dataAnterior = null;
-    dias.forEach(({ d, pi, di }) => {
-      const atual = lerData(d.date_raw);
-      const naoSequencial = Boolean(dataAnterior && atual && atual.getTime() - dataAnterior.getTime() !== 86400000);
-      if (atual) dataAnterior = atual;
-      const punches = Array.isArray(d.punches) ? d.punches : [];
-      const valores = [d.date_raw, ...punches.flatMap(p => [p.time_raw, p.time_hhmm])];
-      const aviso = punches.length % 2 !== 0 || valores.some(possuiInterrogacao);
-      const motivos = [punches.length % 2 !== 0 ? 'Número ímpar de batidas' : '', valores.some(possuiInterrogacao) ? 'Há valor incerto (?)' : '', naoSequencial ? 'Data não sequencial' : ''].filter(Boolean).join(' • ');
+      let dataAnterior = null;
+      p.days.forEach((d, di) => {
+        if (!Array.isArray(d.punches)) d.punches = [];
+        const atual = lerData(d.date_raw);
+        const naoSequencial = Boolean(dataAnterior && atual && atual.getTime() - dataAnterior.getTime() !== 86400000);
+        if (atual) dataAnterior = atual;
+        const valores = [d.date_raw, ...d.punches.flatMap(punch => [punch.time_raw, punch.time_hhmm])];
+        const aviso = d.punches.length % 2 !== 0 || valores.some(possuiInterrogacao);
 
-      html += `<tr class="${classeAviso(aviso, naoSequencial)}" title="${escapeHtml(motivos)}">`;
-      html += `<td>${inputHtml(d.date_raw, `pages.${pi}.days.${di}.date_raw`)}</td>`;
-      for (let i = 0; i < maxPunches; i++) {
-        const punch = punches[i];
-        html += punch ? `<td>${inputHtml(punch.time_hhmm, `pages.${pi}.days.${di}.punches.${i}.time_hhmm`)}</td>` : '<td></td>';
-      }
-      html += '</tr>';
+        html += `<tr class="${classeAviso(aviso, naoSequencial)}">`;
+        html += `<td>${inputHtml(d.date_raw, `pages.${pi}.days.${di}.date_raw`)}</td>`;
+        for (let i = 0; i < maxPunches; i++) {
+          const punch = d.punches[i];
+          if (punch) {
+            html += `<td>${inputHtml(punch.time_hhmm, `pages.${pi}.days.${di}.punches.${i}.time_hhmm`)}</td>`;
+          } else {
+            html += `<td>${inputHtml('', '', { ausente: true, virtualPunch: i, pageIndex: pi, dayIndex: di })}</td>`;
+          }
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody></table></div>';
+      html += `<button type="button" class="small-action add-day" data-page-index="${pi}">+ Adicionar dia não reconhecido</button></div>`;
     });
-    html += '</tbody></table></div>';
-    resultadoEl.innerHTML = dias.length ? html : '<div class="empty">Nenhum dia estruturado foi retornado.</div>';
+
+    resultadoEl.innerHTML = ps.length ? html : '<div class="empty">Nenhuma página retornada.</div>';
   }
 
   function atualizarResumo() {
@@ -310,10 +321,7 @@
     jsonPreview.hidden = false;
     atualizarResumo();
     atualizarJson();
-
-    if (resultado.tipo === 'cartao-ponto') renderizarCartaoPonto();
-    else renderizarHolerite();
-
+    if (resultado.tipo === 'cartao-ponto') renderizarCartaoPonto(); else renderizarHolerite();
     pdfFrame.src = `/api/transcricoes/${encodeURIComponent(resultado.id)}/arquivo`;
     pdfFrame.hidden = false;
     pdfEmpty.hidden = true;
@@ -321,20 +329,55 @@
   }
 
   function aplicarCaminho(caminho, valor) {
+    if (!caminho) return;
     const partes = caminho.split('.');
     let alvo = ultimoResultado.value;
     for (let i = 0; i < partes.length - 1; i++) {
-      const chave = /^\d+$/.test(partes[i]) ? Number(partes[i]) : partes[i];
+      const parte = partes[i];
+      const proxima = partes[i + 1];
+      const chave = /^\d+$/.test(parte) ? Number(parte) : parte;
+      if (alvo[chave] === undefined || alvo[chave] === null) alvo[chave] = /^\d+$/.test(proxima) ? [] : {};
       alvo = alvo[chave];
     }
-    const final = /^\d+$/.test(partes.at(-1)) ? Number(partes.at(-1)) : partes.at(-1);
+    const ultimo = partes.at(-1);
+    const final = /^\d+$/.test(ultimo) ? Number(ultimo) : ultimo;
     alvo[final] = valor;
   }
 
+  function materializarCampo(input) {
+    if (!input.dataset.virtualField) return false;
+    const pi = Number(input.dataset.pageIndex);
+    const p = paginas()[pi];
+    if (!Array.isArray(p.fields)) p.fields = [];
+    const fi = p.fields.length;
+    p.fields.push({ code: '?', label: input.dataset.virtualField, reference: '?', value: input.value });
+    input.dataset.path = `pages.${pi}.fields.${fi}.value`;
+    delete input.dataset.virtualField;
+    return true;
+  }
+
+  function materializarPunch(input) {
+    if (input.dataset.virtualPunch === undefined) return false;
+    const pi = Number(input.dataset.pageIndex), di = Number(input.dataset.dayIndex), indice = Number(input.dataset.virtualPunch);
+    const dia = paginas()[pi].days[di];
+    if (!Array.isArray(dia.punches)) dia.punches = [];
+    while (dia.punches.length <= indice) {
+      const i = dia.punches.length;
+      dia.punches.push({ time_raw: '', time_hhmm: '', kind: i % 2 === 0 ? 'IN' : 'OUT' });
+    }
+    dia.punches[indice].time_hhmm = input.value;
+    dia.punches[indice].time_raw = input.value;
+    input.dataset.path = `pages.${pi}.days.${di}.punches.${indice}.time_hhmm`;
+    delete input.dataset.virtualPunch;
+    return true;
+  }
+
   document.addEventListener('input', event => {
-    if (!event.target.matches('.edit') || !ultimoResultado) return;
-    aplicarCaminho(event.target.dataset.path, event.target.value);
-    event.target.classList.toggle('unknown', possuiInterrogacao(event.target.value));
+    const input = event.target;
+    if (!input.matches('.edit') || !ultimoResultado) return;
+    if (!materializarCampo(input) && !materializarPunch(input)) aplicarCaminho(input.dataset.path, input.value);
+    input.classList.toggle('unknown', possuiInterrogacao(input.value));
+    input.classList.toggle('blank', input.value === '');
     alterado = true;
     atualizarJson();
   });
@@ -342,24 +385,47 @@
   document.addEventListener('change', event => {
     if (!event.target.matches('.edit') || !ultimoResultado) return;
     atualizarResumo();
-    if (ultimoResultado.tipo === 'cartao-ponto') renderizarCartaoPonto();
-    else renderizarHolerite();
+    if (ultimoResultado.tipo === 'cartao-ponto') renderizarCartaoPonto(); else renderizarHolerite();
     atualizarJson();
+  });
+
+  document.addEventListener('click', event => {
+    const botaoDia = event.target.closest('.add-day');
+    if (botaoDia) {
+      const pi = Number(botaoDia.dataset.pageIndex), p = paginas()[pi];
+      if (!Array.isArray(p.days)) p.days = [];
+      p.days.push({ date_raw: '', punches: [] });
+      alterado = true;
+      renderizarCartaoPonto(); atualizarResumo(); atualizarJson(); return;
+    }
+
+    const botaoCampo = event.target.closest('.add-field');
+    if (botaoCampo) {
+      const pi = Number(botaoCampo.dataset.pageIndex), p = paginas()[pi];
+      if (!Array.isArray(p.fields)) p.fields = [];
+      p.fields.push({ code: '', label: '', reference: '', value: '' });
+      alterado = true;
+      renderizarHolerite(); atualizarResumo(); atualizarJson(); return;
+    }
+
+    const botaoBase = event.target.closest('.add-base');
+    if (botaoBase) {
+      const pi = Number(botaoBase.dataset.pageIndex), p = paginas()[pi];
+      if (!Array.isArray(p.bases)) p.bases = [];
+      p.bases.push({ label: '', value: '' });
+      alterado = true;
+      renderizarHolerite(); atualizarResumo(); atualizarJson();
+    }
   });
 
   async function salvarCorrecoes(silencioso = false) {
     if (!ultimoResultado?.id || ultimoResultado.status !== 'concluido') return;
     if (!alterado && silencioso) return;
-
     const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(ultimoResultado.id)}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: ultimoResultado.value })
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: ultimoResultado.value })
     });
-
     const dados = await resposta.json().catch(() => ({}));
     if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível salvar as correções.');
-
     ultimoResultado = dados;
     alterado = false;
     atualizarJson();
@@ -369,9 +435,7 @@
   async function baixarPlanilha(formato, botao) {
     if (!ultimoResultado?.id) return;
     const textoOriginal = botao.textContent;
-    botao.disabled = true;
-    botao.textContent = 'Gerando...';
-
+    botao.disabled = true; botao.textContent = 'Gerando...';
     try {
       await salvarCorrecoes(true);
       const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(ultimoResultado.id)}/planilha?formato=${encodeURIComponent(formato)}`, { cache: 'no-store' });
@@ -379,32 +443,20 @@
         const dados = await resposta.json().catch(() => ({}));
         throw new Error(dados.erro || `Falha ao gerar ${formato.toUpperCase()}.`);
       }
-
       const blob = await resposta.blob();
       const disposicao = resposta.headers.get('Content-Disposition') || '';
       const encontrado = disposicao.match(/filename="?([^";]+)"?/i);
       const nome = encontrado?.[1] || `transcricao.${formato}`;
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = nome;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const link = document.createElement('a'); link.href = url; link.download = nome; document.body.appendChild(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 500);
       status(`Arquivo ${formato.toUpperCase()} gerado com as correções atuais.`, 'success');
-    } catch (erro) {
-      status(erro.message || 'Erro ao gerar arquivo.', 'error');
-    } finally {
-      botao.textContent = textoOriginal;
-      botao.disabled = false;
-    }
+    } catch (erro) { status(erro.message || 'Erro ao gerar arquivo.', 'error'); }
+    finally { botao.textContent = textoOriginal; botao.disabled = false; }
   }
 
   async function esperarTranscricao(id) {
-    const intervalo = 500;
-    const tentativas = 240;
-
+    const intervalo = 500, tentativas = 240;
     for (let i = 0; i < tentativas; i++) {
       const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(id)}`, { cache: 'no-store' });
       if (!resposta.ok) throw new Error(`Falha ao consultar a transcrição (${resposta.status}).`);
@@ -418,38 +470,21 @@
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    const file = arquivo.files[0];
-    if (!file) return;
-
-    enviar.disabled = true;
-    habilitarResultado(false);
-    ultimoResultado = null;
-    resultadoEl.innerHTML = '<div class="empty">Processando...</div>';
-    detalhes.hidden = true;
-    jsonPreview.hidden = true;
-    pdfFrame.hidden = true;
-    pdfFrame.src = 'about:blank';
-    pdfEmpty.hidden = false;
-    pdfMeta.textContent = 'Aguardando processamento.';
-    status('Enviando arquivo...');
-
+    if (!arquivo.files[0]) return;
+    enviar.disabled = true; habilitarResultado(false); ultimoResultado = null;
+    resultadoEl.innerHTML = '<div class="empty">Processando...</div>'; detalhes.hidden = true; jsonPreview.hidden = true;
+    pdfFrame.hidden = true; pdfFrame.src = 'about:blank'; pdfEmpty.hidden = false; pdfMeta.textContent = 'Aguardando processamento.'; status('Enviando arquivo...');
     try {
-      const formData = new FormData(form);
-      const resposta = await fetch('/api/transcricoes', { method: 'POST', body: formData });
+      const resposta = await fetch('/api/transcricoes', { method: 'POST', body: new FormData(form) });
       const inicio = await resposta.json().catch(() => ({}));
       if (!resposta.ok) throw new Error(inicio.erro || `Falha no envio (${resposta.status}).`);
-
       const dados = await esperarTranscricao(inicio.id);
       if (dados.status === 'erro') throw new Error(dados.erro || 'Falha no processamento.');
       renderizar(dados);
-      status('Transcrição concluída. Revise, corrija e baixe a planilha.', 'success');
+      status('Transcrição concluída. Revise, complete campos vazios e baixe a planilha.', 'success');
     } catch (erro) {
-      status(erro.message || 'Erro inesperado.', 'error');
-      resultadoEl.innerHTML = '<div class="empty">Não foi possível carregar o resultado.</div>';
-      habilitarResultado(false);
-    } finally {
-      enviar.disabled = false;
-    }
+      status(erro.message || 'Erro inesperado.', 'error'); resultadoEl.innerHTML = '<div class="empty">Não foi possível carregar o resultado.</div>'; habilitarResultado(false);
+    } finally { enviar.disabled = false; }
   });
 
   salvarBtn.addEventListener('click', () => salvarCorrecoes(false).catch(erro => status(erro.message, 'error')));
