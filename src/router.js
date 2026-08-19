@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { analisarPDF } from './services/extracaoService.js';
 import { extrairHolerite } from './extractors/holeriteExtractor.js';
 import { extrairCartaoPonto } from './extractors/cartaoPontoExtractor.js';
+import { gerarArquivoPlanilha } from './services/planilhaService.js';
 import { fileTypeFromFile } from 'file-type';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -270,10 +271,35 @@ routerTranscricoes.get('/:id/planilha', (req, res) => {
         });
     }
 
-    // TODO Etapa 15: gerar de verdade em xlsx/csv/json com ExcelJS
-    return res.status(501).json({
-        erro: `Geração de planilha (${formato}) ainda não implementada`
-    });
+    try {
+        const arquivo = gerarArquivoPlanilha(
+            transcricao.tipo,
+            transcricao.value,
+            formato
+        );
+
+        const nomeArquivo = `${transcricao.tipo}-${id}.${arquivo.extensao}`;
+
+        res.setHeader('Content-Type', arquivo.contentType);
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${nomeArquivo}"`
+        );
+        res.setHeader('Content-Length', arquivo.buffer.length);
+
+        return res.status(200).send(arquivo.buffer);
+    } catch (erro) {
+        if (erro.code === 'FORMATO_INVALIDO' || erro.code === 'TIPO_INVALIDO') {
+            return res.status(400).json({
+                erro: erro.message
+            });
+        }
+
+        console.log('ERRO AO GERAR PLANILHA:', erro);
+        return res.status(500).json({
+            erro: 'Não foi possível gerar a planilha.'
+        });
+    }
 });
 
 
