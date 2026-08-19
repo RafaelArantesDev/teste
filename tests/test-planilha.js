@@ -38,6 +38,13 @@ const cartaoPonto = {
                         { kind: 'IN', time_hhmm: '13:00' },
                         { kind: 'OUT', time_hhmm: '17:00' }
                     ]
+                },
+                {
+                    date_raw: '04/01/2020',
+                    punches: [
+                        { kind: 'IN', time_hhmm: '08:10' },
+                        { kind: 'OUT', time_hhmm: '12:10' }
+                    ]
                 }
             ]
         }
@@ -51,12 +58,13 @@ assert.equal(linhasJson[0]['Pág.'], '1');
 assert.equal(linhasJson[0]['Mês'], '01');
 assert.equal(linhasJson[0]['Ano'], '2020');
 assert.equal(linhasJson[0].SALARIO, '1.300,00');
-assert.equal(linhasJson[1].INSS, '?');
+assert.equal(linhasJson[1].INSS, '', 'Verba ausente na página deve gerar célula vazia, não ?');
 
 const csv = gerarArquivoPlanilha('cartao-ponto', cartaoPonto, 'csv');
 const textoCsv = csv.buffer.toString('utf8');
 assert.match(textoCsv, /"Data","Entrada 1","Saída 1","Entrada 2","Saída 2"/);
 assert.match(textoCsv, /"03\/01\/2020","08:00","12:00","13:00","17:00"/);
+assert.match(textoCsv, /"04\/01\/2020","08:10","12:10","",""/);
 
 const xlsx = gerarArquivoPlanilha('holerite', holerite, 'xlsx');
 assert.equal(xlsx.contentType, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
