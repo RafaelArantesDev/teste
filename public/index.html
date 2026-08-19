@@ -21,14 +21,18 @@
     label { display: block; margin: 16px 0 7px; font-weight: 600; font-size: 14px; }
     select, input[type=file] { width: 100%; padding: 11px; border: 1px solid #ccd3df; border-radius: 9px; background: white; }
     button { border: 0; border-radius: 9px; padding: 12px 16px; cursor: pointer; font-weight: 700; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
     #enviar { width: 100%; margin-top: 18px; background: #2563eb; color: white; }
-    #enviar:disabled { opacity: .55; cursor: not-allowed; }
     .status { margin-top: 18px; padding: 12px; border-radius: 9px; background: #f1f5f9; font-size: 14px; white-space: pre-wrap; }
     .error { background: #fff1f2; color: #b42318; }
     .success { background: #ecfdf3; color: #067647; }
     .results { min-width: 0; }
     .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+    .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .toolbar button { background: #e8eefb; color: #17408c; }
+    .toolbar .xlsx { background: #dcfce7; color: #166534; }
+    .toolbar .csv { background: #fef3c7; color: #92400e; }
+    .toolbar .json { background: #e8eefb; color: #17408c; }
     .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
     .badge { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700; }
     .badge.warning { background: #fff7ed; color: #9a3412; }
@@ -72,8 +76,15 @@
       </section>
       <section class="card results">
         <div class="toolbar">
-          <div><h2>Resultado da transcrição</h2><span id="meta" class="muted">Nenhuma transcrição carregada.</span></div>
-          <button id="json" type="button" disabled>Baixar JSON</button>
+          <div>
+            <h2>Resultado da transcrição</h2>
+            <span id="meta" class="muted">Nenhuma transcrição carregada.</span>
+          </div>
+          <div class="toolbar-actions" aria-label="Exportar transcrição">
+            <button id="xlsx" class="xlsx" type="button" disabled>Baixar XLSX</button>
+            <button id="csv" class="csv" type="button" disabled>Baixar CSV</button>
+            <button id="json" class="json" type="button" disabled>Baixar JSON</button>
+          </div>
         </div>
         <div id="resumo" class="summary"></div>
         <div id="resultado" class="empty">O resultado aparecerá aqui após o processamento.</div>
@@ -92,9 +103,12 @@
   const resultadoEl = document.getElementById('resultado');
   const metaEl = document.getElementById('meta');
   const resumoEl = document.getElementById('resumo');
+  const xlsxBtn = document.getElementById('xlsx');
+  const csvBtn = document.getElementById('csv');
   const jsonBtn = document.getElementById('json');
   const jsonPreview = document.getElementById('jsonPreview');
   const jsonText = document.getElementById('jsonText');
+  const botoesExportacao = [xlsxBtn, csvBtn, jsonBtn];
   let ultimoResultado = null;
 
   function status(texto, classe = '') { statusEl.textContent = texto; statusEl.className = `status ${classe}`; }
@@ -114,6 +128,10 @@
 
   function ehCartaoPonto(resultado, paginas) {
     return paginas.some(p => Array.isArray(p.days));
+  }
+
+  function habilitarExportacao(habilitar) {
+    botoesExportacao.forEach(botao => { botao.disabled = !habilitar; });
   }
 
   function atualizarResumo(resultado) {
@@ -210,7 +228,7 @@
 
   function renderizar(resultado) {
     ultimoResultado = resultado;
-    jsonBtn.disabled = false;
+    habilitarExportacao(resultado?.status === 'concluido' && Boolean(resultado?.id));
     jsonPreview.hidden = false;
     jsonText.textContent = JSON.stringify(resultado, null, 2);
 
@@ -241,8 +259,6 @@
   }
 
   async function esperarTranscricao(id) {
-    // O processamento do OCR pode levar alguns segundos. Polling curto reduz
-    // a latência percebida sem alterar o processamento do backend.
     const intervalo = 350;
     const tentativas = 300;
     let ultimoErro = null;
@@ -262,9 +278,6 @@
           status(`Arquivo recebido. ID: ${id}\nProcessando... (${Math.round((i * intervalo) / 1000)}s)`);
         }
       } catch (err) {
-        // Um GET isolado não deve derrubar uma transcrição que continua sendo
-        // processada em background. Isso evita o falso erro observado no
-        // time-card-03 quando o JSON já está disponível no Postman.
         ultimoErro = err;
         if (err.status !== 404 && err.status !== 409 && !err.status) {
           throw err;
@@ -276,10 +289,60 @@
     throw new Error('Tempo limite aguardando a conclusão da transcrição.');
   }
 
+  async function baixarPlanilha(formato, botao) {
+    if (!ultimoResultado?.id || ultimoResultado.status !== 'concluido') return;
+
+    const textoOriginal = botao.textContent;
+    botao.disabled = true;
+    botao.textContent = 'Gerando...';
+
+    try {
+      const id = ultimoResultado.id;
+      const resposta = await fetch(
+        `/api/transcricoes/${encodeURIComponent(id)}/planilha?formato=${encodeURIComponent(formato)}`,
+        { cache: 'no-store' }
+      );
+
+      if (!resposta.ok) {
+        let mensagem = `Falha ao gerar ${formato.toUpperCase()} (${resposta.status}).`;
+        try {
+          const dados = await resposta.json();
+          if (dados?.erro) mensagem = dados.erro;
+        } catch {
+        }
+        throw new Error(mensagem);
+      }
+
+      const blob = await resposta.blob();
+      const disposicao = resposta.headers.get('Content-Disposition') || '';
+      const nomeEncontrado = disposicao.match(/filename="?([^";]+)"?/i);
+      const nomeArquivo = nomeEncontrado?.[1] || `${ultimoResultado.tipo || 'transcricao'}-${id}.${formato}`;
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = nomeArquivo;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      status(`Transcrição concluída. Arquivo ${formato.toUpperCase()} gerado com sucesso.`, 'success');
+    } catch (err) {
+      status(err.message || `Erro ao gerar ${formato.toUpperCase()}.`, 'error');
+    } finally {
+      botao.textContent = textoOriginal;
+      botao.disabled = ultimoResultado?.status !== 'concluido';
+    }
+  }
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (!arquivo.files[0]) return;
+
     enviar.disabled = true;
+    ultimoResultado = null;
+    habilitarExportacao(false);
     resultadoEl.innerHTML = '<div class="empty">Processando...</div>';
     resumoEl.innerHTML = '';
     jsonPreview.hidden = true;
@@ -295,26 +358,20 @@
       const dados = await esperarTranscricao(inicio.id);
 
       renderizar(dados);
-      if (dados.status === 'concluido') status('Transcrição concluída.', 'success');
+      if (dados.status === 'concluido') status('Transcrição concluída. Escolha XLSX, CSV ou JSON para gerar a planilha.', 'success');
       else status(`Processamento terminou com status: ${dados.status}\n${dados.erro || ''}`, 'error');
     } catch (err) {
       status(err.message || 'Erro inesperado.', 'error');
       resultadoEl.innerHTML = '<div class="empty">Não foi possível carregar o resultado.</div>';
+      habilitarExportacao(false);
     } finally {
       enviar.disabled = false;
     }
   });
 
-  jsonBtn.addEventListener('click', () => {
-    if (!ultimoResultado) return;
-    const blob = new Blob([JSON.stringify(ultimoResultado, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${ultimoResultado.id || 'transcricao'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+  xlsxBtn.addEventListener('click', () => baixarPlanilha('xlsx', xlsxBtn));
+  csvBtn.addEventListener('click', () => baixarPlanilha('csv', csvBtn));
+  jsonBtn.addEventListener('click', () => baixarPlanilha('json', jsonBtn));
 </script>
 </body>
 </html>
