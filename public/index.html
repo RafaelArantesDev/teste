@@ -112,25 +112,29 @@
     return `<span class="${valor === '?' || /^\?/.test(valor) ? 'unknown' : ''}">${escapeHtml(valor)}</span>`;
   }
 
+  function ehCartaoPonto(resultado, paginas) {
+    return paginas.some(p => Array.isArray(p.days));
+  }
+
   function atualizarResumo(resultado) {
     const paginas = Array.isArray(resultado?.value?.pages) ? resultado.value.pages : [];
+    const cartao = ehCartaoPonto(resultado, paginas);
     const totalCampos = paginas.reduce((n, p) => n + (Array.isArray(p.fields) ? p.fields.length : 0), 0);
     const totalBases = paginas.reduce((n, p) => n + (Array.isArray(p.bases) ? p.bases.length : 0), 0);
     const totalDias = paginas.reduce((n, p) => n + (Array.isArray(p.days) ? p.days.length : 0), 0);
+    const totalBatidas = paginas.reduce((n, p) => n + (Array.isArray(p.days) ? p.days.reduce((m, d) => m + (Array.isArray(d.punches) ? d.punches.length : 0), 0) : 0), 0);
     const totalDesconhecidos = paginas.reduce((n, p) => {
       const campos = (p.fields || []).filter(f => valorSeguro(f.value) === '?').length;
       const bases = (p.bases || []).filter(b => valorSeguro(b.value) === '?').length;
       const punches = (p.days || []).flatMap(d => d.punches || []).filter(x => valorSeguro(x.time_hhmm) === '?').length;
-      return n + campos + bases + punches;
+      const dates = (p.days || []).filter(d => valorSeguro(d.date_raw) === '?').length;
+      return n + campos + bases + punches + dates;
     }, 0);
 
     resumoEl.innerHTML = '';
-    const itens = [
-      ['Páginas', paginas.length],
-      ['Campos', totalCampos],
-      ['Bases', totalBases],
-      ['Dias', totalDias]
-    ];
+    const itens = cartao
+      ? [['Páginas', paginas.length], ['Dias', totalDias], ['Batidas', totalBatidas]]
+      : [['Páginas', paginas.length], ['Campos', totalCampos], ['Bases', totalBases]];
     itens.forEach(([label, valor]) => {
       if (valor > 0) resumoEl.innerHTML += `<span class="badge">${label}: ${valor}</span>`;
     });
@@ -211,8 +215,8 @@
     jsonText.textContent = JSON.stringify(resultado, null, 2);
 
     const paginas = Array.isArray(resultado?.value?.pages) ? resultado.value.pages : [];
-    const tipo = String(resultado?.tipo || '').toLowerCase();
-    metaEl.textContent = `${resultado.tipo || '?'} • ${resultado.status || '?'} • ${paginas.length} página(s)`;
+    const cartao = ehCartaoPonto(resultado, paginas);
+    metaEl.textContent = `${resultado.tipo || (cartao ? 'cartao-ponto' : 'holerite')} • ${resultado.status || '?'} • ${paginas.length} página(s)`;
     atualizarResumo(resultado);
 
     if (!paginas.length) {
@@ -220,7 +224,7 @@
       return;
     }
 
-    resultadoEl.innerHTML = tipo === 'cartao-ponto'
+    resultadoEl.innerHTML = cartao
       ? renderizarCartaoPonto(paginas)
       : renderizarHolerite(paginas);
   }
