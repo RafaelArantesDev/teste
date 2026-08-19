@@ -4,11 +4,21 @@ Aplicação web para receber holerites e cartões de ponto em PDF, extrair infor
 
 ## Entrega
 
-### 1. URL da aplicação publicada
+### 1. Repositório
 
-**Pendente de confirmação.** Não foi possível identificar, no repositório ou nos materiais revisados, uma URL pública de produção. Assim que o deploy público estiver definido, inserir a URL aqui e em `SOLUCAO.md`.
+**GitHub:** https://github.com/RafaelArantesDev/teste
 
-### 2. Documentação da solução
+### 2. URL da aplicação publicada
+
+**Aplicação:** https://quick-filler-rafael.onrender.com
+
+**Health check:** https://quick-filler-rafael.onrender.com/healthz
+
+O deploy foi validado no Render com frontend, backend, upload, processamento, OCR, edição dos dados e exportação de arquivos.
+
+> Observação: a aplicação utiliza a instância gratuita do Render. Após períodos de inatividade o serviço pode entrar em suspensão e a primeira requisição pode levar cerca de 50 segundos ou mais para responder.
+
+### 3. Documentação da solução
 
 Consulte **[`SOLUCAO.md`](./SOLUCAO.md)** para:
 
@@ -20,7 +30,7 @@ Consulte **[`SOLUCAO.md`](./SOLUCAO.md)** para:
 - validação da entrega;
 - limitações e o que ficou de fora.
 
-### 3. Processo de desenvolvimento e uso de IA
+### 4. Processo de desenvolvimento e uso de IA
 
 Consulte **[`PROCESSO.md`](./PROCESSO.md)** para:
 
