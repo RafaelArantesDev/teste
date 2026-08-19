@@ -15,7 +15,7 @@ export function gerarArquivoPlanilha(tipo, value, formato = 'xlsx') {
 
     if (formatoNormalizado === 'json') {
         const conteudo = JSON.stringify(
-            tabela.linhas.map(linha => objetoDaLinha(tabela.colunas, linha)),
+            tabela.linhas.map(linha => objetoDaLinha(tabela.colunas, linha.valores)),
             null,
             2
         );
@@ -28,13 +28,12 @@ export function gerarArquivoPlanilha(tipo, value, formato = 'xlsx') {
     }
 
     if (formatoNormalizado === 'csv') {
-        const linhas = [tabela.colunas, ...tabela.linhas];
+        const linhas = [tabela.colunas, ...tabela.linhas.map(linha => linha.valores)];
         const csv = linhas
             .map(linha => linha.map(valor => escaparCSV(valor)).join(','))
             .join('\r\n');
 
         return {
-            // BOM melhora a abertura de acentos no Excel no Windows.
             buffer: Buffer.from(`\uFEFF${csv}`, 'utf8'),
             contentType: 'text/csv; charset=utf-8',
             extensao: 'csv'
@@ -42,7 +41,7 @@ export function gerarArquivoPlanilha(tipo, value, formato = 'xlsx') {
     }
 
     return {
-        buffer: gerarXlsx(tabela.colunas, tabela.linhas),
+        buffer: gerarXlsx(tabela),
         contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         extensao: 'xlsx'
     };
@@ -64,7 +63,7 @@ function montarTabelaHolerite(value) {
 
     for (const pagina of paginas) {
         for (const campo of Array.isArray(pagina?.fields) ? pagina.fields : []) {
-            const label = valorSeguro(campo?.label);
+            const label = valorObrigatorio(campo?.label);
             if (!labelsVistos.has(label)) {
                 labelsVistos.add(label);
                 labels.push(label);
@@ -73,31 +72,46 @@ function montarTabelaHolerite(value) {
     }
 
     const colunas = ['Pág.', 'Mês', 'Ano', ...labels];
-    const linhas = paginas.map(pagina => {
+    const linhas = [];
+    let competenciaAnterior = null;
+
+    for (const pagina of paginas) {
         const valoresPorLabel = new Map();
 
         for (const campo of Array.isArray(pagina?.fields) ? pagina.fields : []) {
-            const label = valorSeguro(campo?.label);
-            const valor = valorSeguro(campo?.value);
+            const label = valorObrigatorio(campo?.label);
+            const valor = valorObrigatorio(campo?.value);
 
-            if (!valoresPorLabel.has(label)) {
-                valoresPorLabel.set(label, []);
-            }
-
+            if (!valoresPorLabel.has(label)) valoresPorLabel.set(label, []);
             const valores = valoresPorLabel.get(label);
             if (!valores.includes(valor)) valores.push(valor);
         }
 
-        return [
-            valorSeguro(pagina?.page),
-            valorSeguro(pagina?.month),
-            valorSeguro(pagina?.year),
+        const valores = [
+            valorObrigatorio(pagina?.page),
+            valorObrigatorio(pagina?.month),
+            valorObrigatorio(pagina?.year),
             ...labels.map(label => {
-                const valores = valoresPorLabel.get(label);
-                return valores?.length ? valores.join(' | ') : '?';
+                const encontrados = valoresPorLabel.get(label);
+                return encontrados?.length ? encontrados.join(' | ') : '';
             })
         ];
-    });
+
+        const competenciaAtual = lerCompetencia(pagina?.month, pagina?.year);
+        const naoSequencial = Boolean(
+            competenciaAnterior && competenciaAtual && !competenciaSeguinte(competenciaAnterior, competenciaAtual)
+        );
+        if (competenciaAtual) competenciaAnterior = competenciaAtual;
+
+        const paginaVazia = !Array.isArray(pagina?.fields) || pagina.fields.length === 0;
+        const possuiInterrogacao = valores.some(valor => String(valor).includes('?'));
+
+        linhas.push({
+            valores,
+            aviso: paginaVazia || possuiInterrogacao,
+            naoSequencial
+        });
+    }
 
     return { colunas, linhas };
 }
@@ -116,21 +130,36 @@ function montarTabelaCartaoPonto(value) {
         colunas.push(indice % 2 === 0 ? `Entrada ${numero}` : `Saída ${numero}`);
     }
 
-    const linhas = dias.map(dia => {
+    const linhas = [];
+    let dataAnterior = null;
+
+    for (const dia of dias) {
         const punches = Array.isArray(dia?.punches) ? dia.punches : [];
         const horarios = [];
 
         for (let indice = 0; indice < maiorQuantidadeBatidas; indice++) {
-            horarios.push(valorSeguro(punches[indice]?.time_hhmm));
+            const punch = punches[indice];
+            horarios.push(punch ? valorObrigatorio(punch.time_hhmm) : '');
         }
 
-        return [valorSeguro(dia?.date_raw), ...horarios];
-    });
+        const valores = [valorObrigatorio(dia?.date_raw), ...horarios];
+        const dataAtual = lerDataBrasileira(dia?.date_raw);
+        const naoSequencial = Boolean(
+            dataAnterior && dataAtual && !dataSeguinte(dataAnterior, dataAtual)
+        );
+        if (dataAtual) dataAnterior = dataAtual;
+
+        linhas.push({
+            valores,
+            aviso: punches.length % 2 !== 0 || valores.some(valor => String(valor).includes('?')),
+            naoSequencial
+        });
+    }
 
     return { colunas, linhas };
 }
 
-function valorSeguro(valor) {
+function valorObrigatorio(valor) {
     if (valor === null || valor === undefined) return '?';
     const texto = String(valor).trim();
     return texto || '?';
@@ -139,24 +168,67 @@ function valorSeguro(valor) {
 function objetoDaLinha(colunas, linha) {
     const objeto = {};
     colunas.forEach((coluna, indice) => {
-        objeto[coluna] = valorSeguro(linha[indice]);
+        objeto[coluna] = linha[indice] ?? '';
     });
     return objeto;
 }
 
 function escaparCSV(valor) {
-    const texto = valorSeguro(valor);
+    const texto = valor === null || valor === undefined ? '' : String(valor);
     return `"${texto.replace(/"/g, '""')}"`;
 }
 
-function gerarXlsx(colunas, linhas) {
-    const planilha = [colunas, ...linhas];
-    const worksheetXml = gerarWorksheetXml(planilha);
+function lerCompetencia(month, year) {
+    const mes = String(month ?? '').trim();
+    const ano = String(year ?? '').trim();
+    if (!/^\d{2}$/.test(mes) || !/^\d{4}$/.test(ano)) return null;
+
+    const numeroMes = Number(mes);
+    const numeroAno = Number(ano);
+    if (numeroMes < 1 || numeroMes > 12) return null;
+    return { mes: numeroMes, ano: numeroAno };
+}
+
+function competenciaSeguinte(anterior, atual) {
+    let mes = anterior.mes + 1;
+    let ano = anterior.ano;
+    if (mes === 13) {
+        mes = 1;
+        ano += 1;
+    }
+    return atual.mes === mes && atual.ano === ano;
+}
+
+function lerDataBrasileira(valor) {
+    const texto = String(valor ?? '').trim();
+    const match = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const dia = Number(match[1]);
+    const mes = Number(match[2]);
+    const ano = Number(match[3]);
+    const data = new Date(Date.UTC(ano, mes - 1, dia));
+
+    if (
+        data.getUTCFullYear() !== ano ||
+        data.getUTCMonth() !== mes - 1 ||
+        data.getUTCDate() !== dia
+    ) return null;
+
+    return data;
+}
+
+function dataSeguinte(anterior, atual) {
+    return atual.getTime() - anterior.getTime() === 24 * 60 * 60 * 1000;
+}
+
+function gerarXlsx(tabela) {
+    const worksheetXml = gerarWorksheetXml(tabela);
 
     const arquivos = [
         {
             nome: '[Content_Types].xml',
-            conteudo: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`
+            conteudo: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`
         },
         {
             nome: '_rels/.rels',
@@ -168,7 +240,11 @@ function gerarXlsx(colunas, linhas) {
         },
         {
             nome: 'xl/_rels/workbook.xml.rels',
-            conteudo: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`
+            conteudo: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`
+        },
+        {
+            nome: 'xl/styles.xml',
+            conteudo: gerarStylesXml()
         },
         {
             nome: 'xl/worksheets/sheet1.xml',
@@ -179,17 +255,32 @@ function gerarXlsx(colunas, linhas) {
     return criarZip(arquivos);
 }
 
-function gerarWorksheetXml(linhas) {
-    const quantidadeColunas = Math.max(1, ...linhas.map(linha => linha.length));
+function gerarStylesXml() {
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF3CD"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF8D7DA"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="medium"><color rgb="FFDC3545"/></left><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyFill="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="2" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFill="1" applyBorder="1"/></cellXfs></styleSheet>`;
+}
+
+function gerarWorksheetXml(tabela) {
+    const linhas = [
+        { valores: tabela.colunas, cabecalho: true, aviso: false, naoSequencial: false },
+        ...tabela.linhas
+    ];
+    const quantidadeColunas = Math.max(1, ...linhas.map(linha => linha.valores.length));
     const ultimaColuna = numeroParaColuna(quantidadeColunas);
     const ultimaLinha = Math.max(1, linhas.length);
 
     const rowsXml = linhas.map((linha, indiceLinha) => {
         const numeroLinha = indiceLinha + 1;
-        const cells = linha.map((valor, indiceColuna) => {
+        const cells = linha.valores.map((valor, indiceColuna) => {
             const referencia = `${numeroParaColuna(indiceColuna + 1)}${numeroLinha}`;
-            const texto = escaparXml(valorSeguro(valor));
-            return `<c r="${referencia}" t="inlineStr"><is><t xml:space="preserve">${texto}</t></is></c>`;
+            const texto = escaparXml(valor === null || valor === undefined ? '' : String(valor));
+            const estilo = linha.cabecalho
+                ? 1
+                : linha.naoSequencial
+                    ? (indiceColuna === 0 ? 4 : 3)
+                    : linha.aviso
+                        ? 2
+                        : 0;
+            return `<c r="${referencia}" t="inlineStr" s="${estilo}"><is><t xml:space="preserve">${texto}</t></is></c>`;
         }).join('');
         return `<row r="${numeroLinha}">${cells}</row>`;
     }).join('');
