@@ -10,17 +10,17 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const PASTA_UPLOADS = path.resolve('uploads');
+const RETENCAO_MS = Math.max(60_000, Number(process.env.RETENCAO_MS) || 60 * 60 * 1000);
 
 const routerHealth = Router();
 const routerTranscricoes = Router();
 
-routerTranscricoes.use(express.json());
+routerTranscricoes.use(express.json({ limit: '2mb' }));
 
-const result = { resultado: "ok, Funcionando" };
 const transcricoes = new Map();
 
 routerHealth.get('/', (req, res) => {
-    res.json(result);
+    res.status(200).json({ resultado: 'ok' });
 });
 
 const storage = multer.diskStorage({
@@ -30,69 +30,76 @@ const storage = multer.diskStorage({
             .catch(cb);
     },
     filename: function (req, file, cb) {
-        // Nome único por upload, para nunca sobrescrever arquivos
-        // com o mesmo nome original enviados em momentos diferentes.
-        const nomeUnico = `${Date.now()}-${file.originalname}`;
-        cb(null, nomeUnico);
+        const extensao = path.extname(file.originalname).toLowerCase() === '.pdf' ? '.pdf' : '';
+        cb(null, `${Date.now()}-${randomUUID()}${extensao}`);
     }
 });
 
 const fileFilter = function (req, file, cb) {
-
-    console.log('ARQUIVO RECEBIDO PELO FILTRO:');
-    console.log({
-        originalname: file.originalname,
-        mimetype: file.mimetype
-    });
-
     if (file.mimetype === 'application/pdf') {
         cb(null, true);
     } else {
-        cb(new Error('Arquivo Inválido!'));
+        cb(new Error('Arquivo inválido. Envie um PDF.'));
     }
 };
 
+const upload = multer({
+    storage,
+    fileFilter,
+    limits: {
+        fileSize: 10 * 1024 * 1024,
+        files: 1
+    }
+}).single('arquivo');
+
 async function validarPDF(caminhoArquivo) {
     const tipo = await fileTypeFromFile(caminhoArquivo);
-
     return tipo?.mime === 'application/pdf';
 }
 
-async function processarTranscricao(id) {
-    console.log(`INICIANDO processamento em background para ${id}`);
+async function removerArquivo(caminhoArquivo) {
+    if (!caminhoArquivo) return;
+    try {
+        await fs.unlink(caminhoArquivo);
+    } catch (erro) {
+        if (erro?.code !== 'ENOENT') {
+            console.log('Falha ao remover arquivo temporário:', erro.message);
+        }
+    }
+}
 
+async function limparTranscricoesExpiradas() {
+    const agora = Date.now();
+
+    for (const [id, transcricao] of transcricoes.entries()) {
+        if (transcricao.status === 'processando') continue;
+        if (agora - transcricao.criadoEm < RETENCAO_MS) continue;
+
+        await removerArquivo(transcricao.arquivo);
+        transcricoes.delete(id);
+    }
+}
+
+const limpezaTimer = setInterval(() => {
+    limparTranscricoesExpiradas().catch(erro => {
+        console.log('Falha na limpeza de arquivos temporários:', erro.message);
+    });
+}, Math.min(RETENCAO_MS, 10 * 60 * 1000));
+limpezaTimer.unref?.();
+
+async function processarTranscricao(id) {
     const transcricao = transcricoes.get(id);
 
-    if (!transcricao) {
-        console.log(`Transcrição ${id} não existe mais, abortando`);
-        return;
-    }
+    if (!transcricao) return;
 
     try {
         const resultado = await analisarPDF(transcricao.arquivo);
-
-        console.log('Origem do texto:', resultado.origem);
-        console.log('Métricas da extração:');
-        console.log(resultado.metricas);
-        console.log('Avaliação da extração:');
-        console.log(resultado.avaliacao);
-
-        // A avaliação serve para decidir se devemos acionar OCR, não para
-        // descartar o resultado depois. Mesmo um OCR imperfeito pode conter
-        // vários campos confiáveis; o extrator marca os campos incertos com ?.
-        // O contrato do desafio já recebe o tipo no upload. Não substituímos
-        // esse valor por uma heurística de OCR: um OCR ruim pode conter sinais
-        // dos dois layouts e trocar o extrator seria pior que preservar o tipo
-        // escolhido pelo cliente. A detecção automática fica apenas como
-        // fallback quando o campo tipo não foi informado.
         const tipoInformado = normalizarTipoDocumento(transcricao.tipo);
         const tipoDetectado = detectarTipoDocumento(resultado.texto);
         const tipoProcessamento = tipoInformado || tipoDetectado;
 
         if (!tipoProcessamento) {
-            throw new Error(
-                `Não foi possível determinar o tipo do documento. Tipo recebido: ${transcricao.tipo || '(vazio)'}`
-            );
+            throw new Error('Não foi possível determinar o tipo do documento.');
         }
 
         let valorExtraido;
@@ -102,55 +109,31 @@ async function processarTranscricao(id) {
         } else if (tipoProcessamento === 'cartao-ponto') {
             valorExtraido = extrairCartaoPonto(resultado.texto);
         } else {
-            throw new Error(
-                `Tipo de documento não suportado: ${tipoProcessamento}`
-            );
+            throw new Error('Tipo de documento não suportado.');
         }
 
-        // O tipo devolvido precisa representar o documento efetivamente
-        // processado, não apenas o valor que veio do formulário.
         transcricao.tipo = tipoProcessamento;
-        transcricao.status = "concluido";
+        transcricao.status = 'concluido';
         transcricao.value = valorExtraido;
-
-        console.log(
-            `Transcrição ${id} CONCLUÍDA via ${resultado.origem}`
-        );
-
+        transcricao.erro = null;
         transcricoes.set(id, transcricao);
 
+        console.log(`Transcrição ${id} concluída via ${resultado.origem}.`);
     } catch (err) {
-        transcricao.status = "erro";
-        transcricao.erro = err.message;
-
+        transcricao.status = 'erro';
+        transcricao.value = null;
+        transcricao.erro = err?.message || 'Falha no processamento.';
         transcricoes.set(id, transcricao);
 
-        console.log(
-            `Transcrição ${id} FALHOU:`,
-            err.message
-        );
+        console.log(`Transcrição ${id} falhou: ${transcricao.erro}`);
     }
 }
 
 routerTranscricoes.post('/', (req, res) => {
     const id = randomUUID();
 
-    console.log('ID GERADO:', id);
-
-    const upload = multer({
-        storage,
-        fileFilter,
-        limits: {
-            fileSize: 10 * 1024 * 1024
-        }
-    }).single('arquivo');
-
     upload(req, res, async function (err) {
-
         if (err) {
-            console.log('ERRO RECEBIDO PELO CALLBACK:');
-            console.log(err);
-
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(413).json({
                     erro: 'Arquivo muito grande. O tamanho máximo permitido é 10 MB.'
@@ -168,52 +151,39 @@ routerTranscricoes.post('/', (req, res) => {
             });
         }
 
-        console.log('Arquivo PDF recebido para processamento.');
-
         try {
             const pdfValido = await validarPDF(req.file.path);
 
             if (!pdfValido) {
-
-                await fs.unlink(req.file.path);
-
+                await removerArquivo(req.file.path);
                 return res.status(400).json({
                     erro: 'O arquivo enviado não é um PDF válido.'
                 });
             }
 
-            const objt = {
-                id: id,
-                tipo: req.body.tipo,
-                status: "processando",
+            const tipo = normalizarTipoDocumento(req.body.tipo);
+            if (!tipo) {
+                await removerArquivo(req.file.path);
+                return res.status(400).json({
+                    erro: 'Tipo inválido. Use cartao-ponto ou holerite.'
+                });
+            }
+
+            transcricoes.set(id, {
+                id,
+                tipo,
+                status: 'processando',
                 arquivo: req.file.path,
                 value: null,
-                erro: null
-            };
-
-            transcricoes.set(id, objt);
-
-            console.log('ID SALVO:', id);
-            console.log('TAMANHO DO MAP:', transcricoes.size);
+                erro: null,
+                criadoEm: Date.now()
+            });
 
             processarTranscricao(id);
 
-            return res.status(202).json({
-                id: id
-            });
-
+            return res.status(202).json({ id });
         } catch (erro) {
-
-            console.log('ERRO AO VALIDAR ARQUIVO:', erro);
-
-            if (req.file?.path) {
-                try {
-                    await fs.unlink(req.file.path);
-                } catch {
-                    // Arquivo já pode ter sido removido
-                }
-            }
-
+            await removerArquivo(req.file?.path);
             return res.status(400).json({
                 erro: 'Não foi possível validar o arquivo enviado.'
             });
@@ -221,10 +191,26 @@ routerTranscricoes.post('/', (req, res) => {
     });
 });
 
-routerTranscricoes.get('/:id', (req, res) => {
-    const { id } = req.params;
+routerTranscricoes.get('/:id/arquivo', async (req, res) => {
+    const transcricao = transcricoes.get(req.params.id);
 
-    const transcricao = transcricoes.get(id);
+    if (!transcricao) {
+        return res.status(404).json({ erro: 'Transcrição não encontrada' });
+    }
+
+    try {
+        await fs.access(transcricao.arquivo);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline');
+        res.setHeader('Cache-Control', 'private, no-store');
+        return res.sendFile(path.resolve(transcricao.arquivo));
+    } catch {
+        return res.status(404).json({ erro: 'PDF não está mais disponível.' });
+    }
+});
+
+routerTranscricoes.get('/:id', (req, res) => {
+    const transcricao = transcricoes.get(req.params.id);
 
     if (!transcricao) {
         return res.status(404).json({
@@ -236,10 +222,8 @@ routerTranscricoes.get('/:id', (req, res) => {
 });
 
 routerTranscricoes.put('/:id', (req, res) => {
-    const { id } = req.params;
+    const transcricao = transcricoes.get(req.params.id);
     const { value } = req.body;
-
-    const transcricao = transcricoes.get(id);
 
     if (!transcricao) {
         return res.status(404).json({
@@ -247,8 +231,20 @@ routerTranscricoes.put('/:id', (req, res) => {
         });
     }
 
+    if (transcricao.status !== 'concluido') {
+        return res.status(409).json({
+            erro: 'Transcrição ainda não está concluída'
+        });
+    }
+
+    if (!value || !Array.isArray(value.pages)) {
+        return res.status(400).json({
+            erro: 'value.pages deve ser um array.'
+        });
+    }
+
     transcricao.value = value;
-    transcricoes.set(id, transcricao);
+    transcricoes.set(transcricao.id, transcricao);
 
     return res.status(200).json(formatarRespostaPublica(transcricao));
 });
@@ -256,7 +252,6 @@ routerTranscricoes.put('/:id', (req, res) => {
 routerTranscricoes.get('/:id/planilha', (req, res) => {
     const { id } = req.params;
     const { formato = 'xlsx' } = req.query;
-
     const transcricao = transcricoes.get(id);
 
     if (!transcricao) {
@@ -281,31 +276,23 @@ routerTranscricoes.get('/:id/planilha', (req, res) => {
         const nomeArquivo = `${transcricao.tipo}-${id}.${arquivo.extensao}`;
 
         res.setHeader('Content-Type', arquivo.contentType);
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${nomeArquivo}"`
-        );
+        res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
         res.setHeader('Content-Length', arquivo.buffer.length);
 
         return res.status(200).send(arquivo.buffer);
     } catch (erro) {
         if (erro.code === 'FORMATO_INVALIDO' || erro.code === 'TIPO_INVALIDO') {
-            return res.status(400).json({
-                erro: erro.message
-            });
+            return res.status(400).json({ erro: erro.message });
         }
 
-        console.log('ERRO AO GERAR PLANILHA:', erro);
+        console.log('Erro ao gerar planilha:', erro.message);
         return res.status(500).json({
             erro: 'Não foi possível gerar a planilha.'
         });
     }
 });
 
-
 function formatarRespostaPublica(transcricao) {
-    // O contrato do README é literal: o caminho do arquivo é interno e não
-    // faz parte da resposta GET/PUT. Mantemos apenas id, tipo, status, erro e value.
     return {
         id: transcricao.id,
         tipo: transcricao.tipo,
