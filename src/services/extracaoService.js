@@ -13,22 +13,17 @@ const PASTA_TEMP_OCR = path.resolve('temp-orc');
 const CAMINHO_PROCESSO_OCR = fileURLToPath(new URL('./ocrProcess.js', import.meta.url));
 
 async function rodarOcrEmProcessoIsolado(caminhoArquivo, pastaTemp) {
-    const { stdout, stderr } = await execFileAsync(
+    const { stdout } = await execFileAsync(
         process.execPath,
         [CAMINHO_PROCESSO_OCR, caminhoArquivo, pastaTemp],
         { maxBuffer: 1024 * 1024 * 200 }
     );
 
-    if (stderr?.trim()) console.log(stderr.trim());
-
     const marcador = '__RESULTADO_OCR__';
     const indice = stdout.indexOf(marcador);
 
     if (indice === -1) {
-        throw new Error(
-            'Processo de OCR não retornou um resultado válido.\n' +
-            `--- stdout ---\n${stdout || '(vazio)'}\n--- stderr ---\n${stderr || '(vazio)'}`
-        );
+        throw new Error('Processo de OCR não retornou um resultado válido.');
     }
 
     const { paginas } = JSON.parse(stdout.slice(indice + marcador.length));
@@ -41,11 +36,6 @@ async function rodarOcrEmProcessoIsolado(caminhoArquivo, pastaTemp) {
     }));
 }
 
-/**
- * Um PDF pode ter camada de texto em algumas páginas e ser escaneado em
- * outras. A decisão de OCR é por documento, mas a métrica considera quantas
- * páginas realmente possuem texto aproveitável.
- */
 export async function analisarPDF(caminhoArquivo) {
     const paginasNativas = await extrairPaginasPDF(caminhoArquivo);
     const textoNativo = renderizarDocumento(paginasNativas);
@@ -63,7 +53,7 @@ export async function analisarPDF(caminhoArquivo) {
         };
     }
 
-    console.log('Extração nativa insuficiente, acionando OCR (processo isolado)...');
+    console.log('Extração nativa insuficiente, acionando OCR.');
 
     const pastaTemp = path.join(PASTA_TEMP_OCR, randomUUID());
     const paginasOCR = await rodarOcrEmProcessoIsolado(caminhoArquivo, pastaTemp);
