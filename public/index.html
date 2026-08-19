@@ -10,58 +10,63 @@
     body { margin: 0; min-height: 100vh; }
     header { background: #172033; color: white; padding: 20px 32px; }
     header strong { font-size: 20px; }
-    main { width: min(1240px, calc(100% - 32px)); margin: 32px auto; }
-    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start; }
-    .card { background: white; border: 1px solid #e3e7ef; border-radius: 14px; padding: 22px; box-shadow: 0 4px 18px rgba(23,32,51,.05); }
-    h1 { margin: 0 0 8px; font-size: 28px; }
+    main { width: min(1500px, calc(100% - 32px)); margin: 28px auto; }
+    .card { background: white; border: 1px solid #e3e7ef; border-radius: 14px; padding: 20px; box-shadow: 0 4px 18px rgba(23,32,51,.05); }
+    .upload-grid { display: grid; grid-template-columns: 330px 1fr; gap: 22px; align-items: start; }
+    .workspace { display: grid; grid-template-columns: minmax(380px, 44%) minmax(0, 1fr); gap: 18px; margin-top: 20px; }
+    .pdf-card, .results { min-width: 0; }
+    .pdf-frame { width: 100%; height: 76vh; border: 1px solid #d9dfeb; border-radius: 10px; background: #eef2f7; }
+    h1 { margin: 0 0 8px; font-size: 27px; }
     h2 { margin: 0 0 5px; font-size: 19px; }
-    h3 { margin: 24px 0 10px; font-size: 16px; }
-    h4 { margin: 20px 0 8px; font-size: 14px; }
-    .muted { color: #68738a; font-size: 14px; }
-    label { display: block; margin: 16px 0 7px; font-weight: 600; font-size: 14px; }
+    h3 { margin: 22px 0 10px; font-size: 16px; }
+    .muted { color: #68738a; font-size: 13px; }
+    label { display: block; margin: 15px 0 7px; font-weight: 700; font-size: 14px; }
     select, input[type=file] { width: 100%; padding: 11px; border: 1px solid #ccd3df; border-radius: 9px; background: white; }
-    button { border: 0; border-radius: 9px; padding: 12px 16px; cursor: pointer; font-weight: 700; }
-    button:disabled { opacity: .55; cursor: not-allowed; }
+    button { border: 0; border-radius: 9px; padding: 11px 15px; cursor: pointer; font-weight: 750; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
     #enviar { width: 100%; margin-top: 18px; background: #2563eb; color: white; }
-    .status { margin-top: 18px; padding: 12px; border-radius: 9px; background: #f1f5f9; font-size: 14px; white-space: pre-wrap; }
-    .error { background: #fff1f2; color: #b42318; }
-    .success { background: #ecfdf3; color: #067647; }
-    .results { min-width: 0; }
-    .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+    .status { margin-top: 16px; padding: 11px; border-radius: 9px; background: #f1f5f9; font-size: 13px; white-space: pre-wrap; }
+    .status.error { background: #fff1f2; color: #b42318; }
+    .status.success { background: #ecfdf3; color: #067647; }
+    .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
     .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .toolbar button { background: #e8eefb; color: #17408c; }
+    .toolbar .save { background: #2563eb; color: white; }
     .toolbar .xlsx { background: #dcfce7; color: #166534; }
     .toolbar .csv { background: #fef3c7; color: #92400e; }
     .toolbar .json { background: #e8eefb; color: #17408c; }
-    .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 20px; }
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700; }
-    .badge.warning { background: #fff7ed; color: #9a3412; }
-    .page-card { border: 1px solid #e3e7ef; border-radius: 12px; padding: 16px; margin-top: 18px; background: #fff; }
-    .page-title { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-    .table-wrap { overflow-x: auto; border: 1px solid #e8ebf1; border-radius: 9px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 700px; }
-    th, td { border-bottom: 1px solid #e8ebf1; padding: 9px 8px; text-align: left; vertical-align: top; }
-    tr:last-child td { border-bottom: 0; }
-    th { background: #f8fafc; position: sticky; top: 0; z-index: 1; }
-    .unknown { color: #b45309; font-weight: 800; }
-    .punch-in { color: #166534; font-weight: 700; }
-    .punch-out { color: #9f1239; font-weight: 700; }
-    .day-label { font-weight: 700; white-space: nowrap; }
-    code { background: #f1f5f9; padding: 2px 5px; border-radius: 5px; }
-    .empty { text-align: center; padding: 48px 12px; color: #68738a; }
-    .json-preview { margin-top: 20px; }
-    .json-preview summary { cursor: pointer; font-weight: 700; }
-    .json-preview pre { max-height: 420px; overflow: auto; padding: 14px; border-radius: 9px; background: #0f172a; color: #e2e8f0; font-size: 12px; }
-    @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } header { padding: 18px; } main { width: min(100% - 20px, 1240px); margin: 20px auto; } }
+    .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
+    .badge { display: inline-flex; padding: 6px 9px; border-radius: 999px; background: #f1f5f9; color: #475569; font-size: 12px; font-weight: 750; }
+    .badge.warning { background: #fff3cd; color: #7c5a00; }
+    .badge.danger { background: #f8d7da; color: #842029; }
+    .table-wrap { overflow: auto; border: 1px solid #e6eaf1; border-radius: 9px; max-height: 62vh; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
+    th, td { border-bottom: 1px solid #e8ebf1; padding: 7px; text-align: left; vertical-align: middle; }
+    th { background: #173772; color: white; position: sticky; top: 0; z-index: 2; white-space: nowrap; }
+    tr.warning td { background: #fff3cd; }
+    tr.danger td { background: #f8d7da; }
+    tr.danger td:first-child { border-left: 4px solid #dc3545; }
+    td input { width: 100%; min-width: 90px; padding: 7px; border: 1px solid #cdd5e2; border-radius: 6px; background: rgba(255,255,255,.88); color: #172033; }
+    td input.unknown { border-color: #d97706; font-weight: 800; color: #92400e; }
+    .empty { text-align: center; padding: 42px 12px; color: #68738a; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 14px; font-size: 12px; color: #475569; }
+    .legend span::before { content: ''; display: inline-block; width: 13px; height: 13px; margin-right: 5px; border-radius: 3px; vertical-align: -2px; }
+    .legend .yellow::before { background: #fff3cd; border: 1px solid #eed98e; }
+    .legend .red::before { background: #f8d7da; border-left: 3px solid #dc3545; }
+    details { margin-top: 12px; }
+    details summary { cursor: pointer; font-weight: 750; }
+    .detail-page { border: 1px solid #e6eaf1; border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .json-preview pre { max-height: 260px; overflow: auto; padding: 12px; border-radius: 8px; background: #0f172a; color: #e2e8f0; font-size: 11px; }
+    @media (max-width: 1050px) { .workspace { grid-template-columns: 1fr; } .pdf-frame { height: 60vh; } }
+    @media (max-width: 760px) { .upload-grid { grid-template-columns: 1fr; } header { padding: 18px; } main { width: min(100% - 18px, 1500px); margin: 18px auto; } }
   </style>
 </head>
 <body>
-  <header><strong>Desafio Rafael — Transcrição de Documentos</strong></header>
+  <header><strong>Quick Filler — Transcrição de Documentos</strong></header>
   <main>
-    <div class="grid">
+    <div class="upload-grid">
       <section class="card">
-        <h1>Enviar documento</h1>
-        <p class="muted">Envie um PDF para processamento. A interface apenas apresenta o resultado produzido pela API, sem recalcular ou inventar campos.</p>
+        <h1>Enviar PDF</h1>
+        <p class="muted">Escolha o tipo, envie o documento e aguarde o processamento. Valores incertos permanecem marcados com <strong>?</strong>.</p>
         <form id="form">
           <label for="tipo">Tipo de documento</label>
           <select id="tipo" name="tipo" required>
@@ -69,18 +74,33 @@
             <option value="cartao-ponto">Cartão de ponto</option>
           </select>
           <label for="arquivo">Arquivo PDF</label>
-          <input id="arquivo" name="arquivo" type="file" accept="application/pdf" required>
+          <input id="arquivo" name="arquivo" type="file" accept="application/pdf,.pdf" required>
           <button id="enviar" type="submit">Enviar e processar</button>
         </form>
         <div id="status" class="status">Aguardando arquivo.</div>
       </section>
+      <section class="card">
+        <h2>Fluxo de revisão</h2>
+        <p class="muted">1. Confira o PDF. 2. Corrija as células necessárias. 3. Salve as correções. 4. Baixe a planilha.</p>
+        <div class="legend">
+          <span class="yellow">Revisar: incerteza, batida ímpar ou página vazia</span>
+          <span class="red">Revisar: data ou competência não sequencial</span>
+        </div>
+      </section>
+    </div>
+
+    <div class="workspace">
+      <section class="card pdf-card">
+        <div class="toolbar"><div><h2>PDF</h2><span id="pdfMeta" class="muted">Nenhum documento carregado.</span></div></div>
+        <div id="pdfEmpty" class="empty">O PDF aparecerá aqui após o envio.</div>
+        <iframe id="pdfFrame" class="pdf-frame" title="Documento PDF" hidden></iframe>
+      </section>
+
       <section class="card results">
         <div class="toolbar">
-          <div>
-            <h2>Resultado da transcrição</h2>
-            <span id="meta" class="muted">Nenhuma transcrição carregada.</span>
-          </div>
-          <div class="toolbar-actions" aria-label="Exportar transcrição">
+          <div><h2>Transcrição editável</h2><span id="meta" class="muted">Nenhuma transcrição carregada.</span></div>
+          <div class="toolbar-actions">
+            <button id="salvar" class="save" type="button" disabled>Salvar correções</button>
             <button id="xlsx" class="xlsx" type="button" disabled>Baixar XLSX</button>
             <button id="csv" class="csv" type="button" disabled>Baixar CSV</button>
             <button id="json" class="json" type="button" disabled>Baixar JSON</button>
@@ -88,10 +108,8 @@
         </div>
         <div id="resumo" class="summary"></div>
         <div id="resultado" class="empty">O resultado aparecerá aqui após o processamento.</div>
-        <details id="jsonPreview" class="json-preview" hidden>
-          <summary>Visualizar JSON retornado pela API</summary>
-          <pre id="jsonText"></pre>
-        </details>
+        <details id="detalhes" hidden><summary>Editar detalhes do holerite (código, descrição, referência e bases)</summary><div id="detalhesConteudo"></div></details>
+        <details id="jsonPreview" class="json-preview" hidden><summary>Visualizar JSON atual</summary><pre id="jsonText"></pre></details>
       </section>
     </div>
   </main>
@@ -103,272 +121,338 @@
   const resultadoEl = document.getElementById('resultado');
   const metaEl = document.getElementById('meta');
   const resumoEl = document.getElementById('resumo');
+  const salvarBtn = document.getElementById('salvar');
   const xlsxBtn = document.getElementById('xlsx');
   const csvBtn = document.getElementById('csv');
   const jsonBtn = document.getElementById('json');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const pdfEmpty = document.getElementById('pdfEmpty');
+  const pdfMeta = document.getElementById('pdfMeta');
+  const detalhes = document.getElementById('detalhes');
+  const detalhesConteudo = document.getElementById('detalhesConteudo');
   const jsonPreview = document.getElementById('jsonPreview');
   const jsonText = document.getElementById('jsonText');
-  const botoesExportacao = [xlsxBtn, csvBtn, jsonBtn];
+  const botoesResultado = [salvarBtn, xlsxBtn, csvBtn, jsonBtn];
   let ultimoResultado = null;
+  let alterado = false;
 
-  function status(texto, classe = '') { statusEl.textContent = texto; statusEl.className = `status ${classe}`; }
-
-  function escapeHtml(v) {
-    return String(v ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
+  function status(texto, classe = '') {
+    statusEl.textContent = texto;
+    statusEl.className = `status ${classe}`;
   }
 
-  function valorSeguro(v) {
-    return v === null || v === undefined || String(v).trim() === '' ? '?' : String(v);
+  function escapeHtml(valor) {
+    return String(valor ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[c]));
   }
 
-  function celula(v) {
-    const valor = valorSeguro(v);
-    return `<span class="${valor === '?' || /^\?/.test(valor) ? 'unknown' : ''}">${escapeHtml(valor)}</span>`;
+  function possuiInterrogacao(valor) { return String(valor ?? '').includes('?'); }
+  function valorObrigatorio(valor) { return valor === null || valor === undefined || String(valor).trim() === '' ? '?' : String(valor); }
+  function habilitarResultado(habilitar) { botoesResultado.forEach(botao => { botao.disabled = !habilitar; }); }
+  function paginas() { return Array.isArray(ultimoResultado?.value?.pages) ? ultimoResultado.value.pages : []; }
+
+  function inputHtml(valor, caminho, opcoes = {}) {
+    const v = opcoes.ausente ? '' : String(valor ?? '');
+    const classe = possuiInterrogacao(v) ? 'unknown' : '';
+    const readonly = opcoes.readonly ? 'readonly' : '';
+    return `<input class="edit ${classe}" data-path="${escapeHtml(caminho)}" value="${escapeHtml(v)}" ${readonly}>`;
   }
 
-  function ehCartaoPonto(resultado, paginas) {
-    return paginas.some(p => Array.isArray(p.days));
+  function lerCompetencia(month, year) {
+    const mes = String(month ?? '').trim();
+    const ano = String(year ?? '').trim();
+    if (!/^\d{2}$/.test(mes) || !/^\d{4}$/.test(ano)) return null;
+    const m = Number(mes), a = Number(ano);
+    return m >= 1 && m <= 12 ? { mes: m, ano: a } : null;
   }
 
-  function habilitarExportacao(habilitar) {
-    botoesExportacao.forEach(botao => { botao.disabled = !habilitar; });
+  function competenciaSeguinte(anterior, atual) {
+    let mes = anterior.mes + 1, ano = anterior.ano;
+    if (mes === 13) { mes = 1; ano += 1; }
+    return atual.mes === mes && atual.ano === ano;
   }
 
-  function atualizarResumo(resultado) {
-    const paginas = Array.isArray(resultado?.value?.pages) ? resultado.value.pages : [];
-    const cartao = ehCartaoPonto(resultado, paginas);
-    const totalCampos = paginas.reduce((n, p) => n + (Array.isArray(p.fields) ? p.fields.length : 0), 0);
-    const totalBases = paginas.reduce((n, p) => n + (Array.isArray(p.bases) ? p.bases.length : 0), 0);
-    const totalDias = paginas.reduce((n, p) => n + (Array.isArray(p.days) ? p.days.length : 0), 0);
-    const totalBatidas = paginas.reduce((n, p) => n + (Array.isArray(p.days) ? p.days.reduce((m, d) => m + (Array.isArray(d.punches) ? d.punches.length : 0), 0) : 0), 0);
-    const totalDesconhecidos = paginas.reduce((n, p) => {
-      const campos = (p.fields || []).filter(f => valorSeguro(f.value) === '?').length;
-      const bases = (p.bases || []).filter(b => valorSeguro(b.value) === '?').length;
-      const punches = (p.days || []).flatMap(d => d.punches || []).filter(x => valorSeguro(x.time_hhmm) === '?').length;
-      const dates = (p.days || []).filter(d => valorSeguro(d.date_raw) === '?').length;
-      return n + campos + bases + punches + dates;
-    }, 0);
+  function lerData(valor) {
+    const m = String(valor ?? '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return null;
+    const dia = Number(m[1]), mes = Number(m[2]), ano = Number(m[3]);
+    const data = new Date(Date.UTC(ano, mes - 1, dia));
+    if (data.getUTCFullYear() !== ano || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== dia) return null;
+    return data;
+  }
 
-    resumoEl.innerHTML = '';
-    const itens = cartao
-      ? [['Páginas', paginas.length], ['Dias', totalDias], ['Batidas', totalBatidas]]
-      : [['Páginas', paginas.length], ['Campos', totalCampos], ['Bases', totalBases]];
-    itens.forEach(([label, valor]) => {
-      if (valor > 0) resumoEl.innerHTML += `<span class="badge">${label}: ${valor}</span>`;
+  function atualizarJson() {
+    jsonText.textContent = ultimoResultado ? JSON.stringify(ultimoResultado, null, 2) : '';
+  }
+
+  function classeAviso(aviso, naoSequencial) {
+    return naoSequencial ? 'danger' : aviso ? 'warning' : '';
+  }
+
+  function renderizarHolerite() {
+    const ps = paginas();
+    const labels = [];
+    const vistos = new Set();
+    ps.forEach(p => (p.fields || []).forEach(f => {
+      const label = valorObrigatorio(f.label);
+      if (!vistos.has(label)) { vistos.add(label); labels.push(label); }
+    }));
+
+    let competenciaAnterior = null;
+    let html = '<div class="table-wrap"><table><thead><tr><th>Pág.</th><th>Mês</th><th>Ano</th>';
+    labels.forEach(label => html += `<th>${escapeHtml(label)}</th>`);
+    html += '</tr></thead><tbody>';
+
+    ps.forEach((p, pi) => {
+      const atual = lerCompetencia(p.month, p.year);
+      const naoSequencial = Boolean(competenciaAnterior && atual && !competenciaSeguinte(competenciaAnterior, atual));
+      if (atual) competenciaAnterior = atual;
+
+      const todosValores = [p.month, p.year, ...(p.fields || []).flatMap(f => [f.code, f.label, f.reference, f.value]), ...(p.bases || []).flatMap(b => [b.label, b.value])];
+      const paginaVazia = (!p.fields || p.fields.length === 0) && (!p.bases || p.bases.length === 0);
+      const aviso = paginaVazia || todosValores.some(possuiInterrogacao);
+      const motivos = [paginaVazia ? 'Página vazia' : '', todosValores.some(possuiInterrogacao) ? 'Há valor incerto (?)' : '', naoSequencial ? 'Competência não sequencial' : ''].filter(Boolean).join(' • ');
+
+      html += `<tr class="${classeAviso(aviso, naoSequencial)}" title="${escapeHtml(motivos)}">`;
+      html += `<td>${inputHtml(p.page, `pages.${pi}.page`, { readonly: true })}</td>`;
+      html += `<td>${inputHtml(p.month, `pages.${pi}.month`)}</td>`;
+      html += `<td>${inputHtml(p.year, `pages.${pi}.year`)}</td>`;
+
+      labels.forEach(label => {
+        const fi = (p.fields || []).findIndex(f => valorObrigatorio(f.label) === label);
+        if (fi < 0) html += '<td></td>';
+        else html += `<td>${inputHtml(p.fields[fi].value, `pages.${pi}.fields.${fi}.value`)}</td>`;
+      });
+      html += '</tr>';
     });
-    if (totalDesconhecidos > 0) resumoEl.innerHTML += `<span class="badge warning">Não reconhecidos: ${totalDesconhecidos}</span>`;
+    html += '</tbody></table></div>';
+
+    resultadoEl.innerHTML = html || '<div class="empty">Nenhuma página retornada.</div>';
+    renderizarDetalhesHolerite();
   }
 
-  function renderizarHolerite(paginas) {
+  function renderizarDetalhesHolerite() {
+    const ps = paginas();
+    detalhes.hidden = false;
     let html = '';
-    paginas.forEach(p => {
-      const tituloCompetencia = (p.month && p.year) ? `${valorSeguro(p.month)}/${valorSeguro(p.year)}` : '';
-      html += `<article class="page-card"><div class="page-title"><h3>Página ${escapeHtml(valorSeguro(p.page))}${tituloCompetencia ? ` — ${escapeHtml(tituloCompetencia)}` : ''}</h3><span class="muted">${(p.fields || []).length} campo(s) • ${(p.bases || []).length} base(s)</span></div>`;
-
-      html += '<h4>Campos extraídos</h4>';
+    ps.forEach((p, pi) => {
+      html += `<div class="detail-page"><strong>Página ${escapeHtml(valorObrigatorio(p.page))}</strong>`;
       if (Array.isArray(p.fields) && p.fields.length) {
-        html += '<div class="table-wrap"><table><thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Valor</th></tr></thead><tbody>';
-        p.fields.forEach(f => {
-          html += `<tr><td><code>${escapeHtml(valorSeguro(f.code))}</code></td><td>${celula(f.label)}</td><td>${celula(f.reference)}</td><td>${celula(f.value)}</td></tr>`;
+        html += '<div class="table-wrap" style="margin-top:8px;max-height:300px"><table><thead><tr><th>Código</th><th>Descrição</th><th>Referência</th><th>Valor</th></tr></thead><tbody>';
+        p.fields.forEach((f, fi) => {
+          html += `<tr><td>${inputHtml(f.code, `pages.${pi}.fields.${fi}.code`)}</td><td>${inputHtml(f.label, `pages.${pi}.fields.${fi}.label`)}</td><td>${inputHtml(f.reference, `pages.${pi}.fields.${fi}.reference`)}</td><td>${inputHtml(f.value, `pages.${pi}.fields.${fi}.value`)}</td></tr>`;
         });
         html += '</tbody></table></div>';
-      } else {
-        html += '<div class="empty">Nenhum campo estruturado foi retornado nesta página.</div>';
       }
-
-      html += '<h4>Bases</h4>';
       if (Array.isArray(p.bases) && p.bases.length) {
-        html += '<div class="table-wrap"><table><thead><tr><th>Campo</th><th>Valor</th></tr></thead><tbody>';
-        p.bases.forEach(b => html += `<tr><td>${celula(b.label)}</td><td>${celula(b.value)}</td></tr>`);
+        html += '<div class="table-wrap" style="margin-top:8px;max-height:240px"><table><thead><tr><th>Base/total</th><th>Valor</th></tr></thead><tbody>';
+        p.bases.forEach((b, bi) => html += `<tr><td>${inputHtml(b.label, `pages.${pi}.bases.${bi}.label`)}</td><td>${inputHtml(b.value, `pages.${pi}.bases.${bi}.value`)}</td></tr>`);
         html += '</tbody></table></div>';
-      } else {
-        html += '<div class="muted">Nenhuma base estruturada retornada.</div>';
       }
-      html += '</article>';
+      html += '</div>';
     });
-    return html;
+    detalhesConteudo.innerHTML = html;
   }
 
-  function renderizarCartaoPonto(paginas) {
-    let html = '';
-    paginas.forEach(p => {
-      const dias = Array.isArray(p.days) ? p.days : [];
-      const maxPunches = Math.max(0, ...dias.map(d => Array.isArray(d.punches) ? d.punches.length : 0));
-      const colunas = Math.max(4, Math.min(8, maxPunches || 4));
+  function renderizarCartaoPonto() {
+    detalhes.hidden = true;
+    detalhesConteudo.innerHTML = '';
+    const ps = paginas();
+    const dias = [];
+    ps.forEach((p, pi) => (p.days || []).forEach((d, di) => dias.push({ p, pi, d, di })));
+    const maxPunches = dias.reduce((max, item) => Math.max(max, item.d.punches?.length || 0), 0);
 
-      html += `<article class="page-card"><div class="page-title"><h3>Página ${escapeHtml(valorSeguro(p.page))}</h3><span class="muted">${dias.length} dia(s) reconhecido(s)</span></div>`;
-      if (!dias.length) {
-        html += '<div class="empty">Nenhum dia estruturado foi retornado nesta página.</div></article>';
-        return;
+    let html = '<div class="table-wrap"><table><thead><tr><th>Data</th>';
+    for (let i = 0; i < maxPunches; i++) html += `<th>${i % 2 === 0 ? 'Entrada' : 'Saída'} ${Math.floor(i / 2) + 1}</th>`;
+    html += '</tr></thead><tbody>';
+
+    let dataAnterior = null;
+    dias.forEach(({ d, pi, di }) => {
+      const atual = lerData(d.date_raw);
+      const naoSequencial = Boolean(dataAnterior && atual && atual.getTime() - dataAnterior.getTime() !== 86400000);
+      if (atual) dataAnterior = atual;
+      const punches = Array.isArray(d.punches) ? d.punches : [];
+      const valores = [d.date_raw, ...punches.flatMap(p => [p.time_raw, p.time_hhmm])];
+      const aviso = punches.length % 2 !== 0 || valores.some(possuiInterrogacao);
+      const motivos = [punches.length % 2 !== 0 ? 'Número ímpar de batidas' : '', valores.some(possuiInterrogacao) ? 'Há valor incerto (?)' : '', naoSequencial ? 'Data não sequencial' : ''].filter(Boolean).join(' • ');
+
+      html += `<tr class="${classeAviso(aviso, naoSequencial)}" title="${escapeHtml(motivos)}">`;
+      html += `<td>${inputHtml(d.date_raw, `pages.${pi}.days.${di}.date_raw`)}</td>`;
+      for (let i = 0; i < maxPunches; i++) {
+        const punch = punches[i];
+        html += punch ? `<td>${inputHtml(punch.time_hhmm, `pages.${pi}.days.${di}.punches.${i}.time_hhmm`)}</td>` : '<td></td>';
       }
-
-      html += '<div class="table-wrap"><table><thead><tr><th>Data</th>';
-      for (let i = 0; i < colunas; i++) html += `<th>${i % 2 === 0 ? 'Entrada' : 'Saída'} ${Math.floor(i / 2) + 1}</th>`;
-      html += '</tr></thead><tbody>';
-
-      dias.forEach(dia => {
-        const punches = Array.isArray(dia.punches) ? dia.punches : [];
-        html += `<tr><td class="day-label">${celula(dia.date_raw)}</td>`;
-        for (let i = 0; i < colunas; i++) {
-          const punch = punches[i];
-          if (!punch) {
-            html += '<td>?</td>';
-          } else {
-            const valor = valorSeguro(punch.time_hhmm);
-            const classe = punch.kind === 'IN' ? 'punch-in' : 'punch-out';
-            html += `<td class="${classe}">${celula(valor)}<div class="muted">${escapeHtml(punch.kind || '?')}</div></td>`;
-          }
-        }
-        html += '</tr>';
-      });
-      html += '</tbody></table></div></article>';
+      html += '</tr>';
     });
-    return html;
+    html += '</tbody></table></div>';
+    resultadoEl.innerHTML = dias.length ? html : '<div class="empty">Nenhum dia estruturado foi retornado.</div>';
+  }
+
+  function atualizarResumo() {
+    const ps = paginas();
+    const cartao = ultimoResultado?.tipo === 'cartao-ponto';
+    const desconhecidos = JSON.stringify(ultimoResultado?.value || {}).split('?').length - 1;
+    resumoEl.innerHTML = `<span class="badge">Páginas: ${ps.length}</span>`;
+    if (cartao) {
+      const dias = ps.reduce((n, p) => n + (p.days?.length || 0), 0);
+      resumoEl.innerHTML += `<span class="badge">Dias: ${dias}</span>`;
+    } else {
+      const campos = ps.reduce((n, p) => n + (p.fields?.length || 0), 0);
+      resumoEl.innerHTML += `<span class="badge">Verbas: ${campos}</span>`;
+    }
+    if (desconhecidos) resumoEl.innerHTML += `<span class="badge warning">Caracteres incertos: ${desconhecidos}</span>`;
   }
 
   function renderizar(resultado) {
     ultimoResultado = resultado;
-    habilitarExportacao(resultado?.status === 'concluido' && Boolean(resultado?.id));
+    alterado = false;
+    habilitarResultado(resultado?.status === 'concluido' && Boolean(resultado?.id));
+    metaEl.textContent = `ID ${resultado.id} • ${resultado.tipo} • ${resultado.status}`;
     jsonPreview.hidden = false;
-    jsonText.textContent = JSON.stringify(resultado, null, 2);
+    atualizarResumo();
+    atualizarJson();
 
-    const paginas = Array.isArray(resultado?.value?.pages) ? resultado.value.pages : [];
-    const cartao = ehCartaoPonto(resultado, paginas);
-    metaEl.textContent = `${resultado.tipo || (cartao ? 'cartao-ponto' : 'holerite')} • ${resultado.status || '?'} • ${paginas.length} página(s)`;
-    atualizarResumo(resultado);
+    if (resultado.tipo === 'cartao-ponto') renderizarCartaoPonto();
+    else renderizarHolerite();
 
-    if (!paginas.length) {
-      resultadoEl.innerHTML = '<div class="empty">A API concluiu o processamento, mas não retornou páginas estruturadas.</div>';
-      return;
-    }
-
-    resultadoEl.innerHTML = cartao
-      ? renderizarCartaoPonto(paginas)
-      : renderizarHolerite(paginas);
+    pdfFrame.src = `/api/transcricoes/${encodeURIComponent(resultado.id)}/arquivo`;
+    pdfFrame.hidden = false;
+    pdfEmpty.hidden = true;
+    pdfMeta.textContent = 'Documento disponível durante a sessão de revisão.';
   }
 
-  async function consultar(id) {
-    const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(id)}`, { cache: 'no-store' });
-    const dados = await resposta.json();
-    if (!resposta.ok) {
-      const erro = new Error(dados.erro || `Falha ao consultar transcrição (${resposta.status}).`);
-      erro.status = resposta.status;
-      throw erro;
+  function aplicarCaminho(caminho, valor) {
+    const partes = caminho.split('.');
+    let alvo = ultimoResultado.value;
+    for (let i = 0; i < partes.length - 1; i++) {
+      const chave = /^\d+$/.test(partes[i]) ? Number(partes[i]) : partes[i];
+      alvo = alvo[chave];
     }
-    return dados;
+    const final = /^\d+$/.test(partes.at(-1)) ? Number(partes.at(-1)) : partes.at(-1);
+    alvo[final] = valor;
   }
 
-  async function esperarTranscricao(id) {
-    const intervalo = 350;
-    const tentativas = 300;
-    let ultimoErro = null;
+  document.addEventListener('input', event => {
+    if (!event.target.matches('.edit') || !ultimoResultado) return;
+    aplicarCaminho(event.target.dataset.path, event.target.value);
+    event.target.classList.toggle('unknown', possuiInterrogacao(event.target.value));
+    alterado = true;
+    atualizarJson();
+  });
 
-    for (let i = 0; i < tentativas; i++) {
-      await new Promise(r => setTimeout(r, intervalo));
+  document.addEventListener('change', event => {
+    if (!event.target.matches('.edit') || !ultimoResultado) return;
+    atualizarResumo();
+    if (ultimoResultado.tipo === 'cartao-ponto') renderizarCartaoPonto();
+    else renderizarHolerite();
+    atualizarJson();
+  });
 
-      try {
-        const dados = await consultar(id);
-        ultimoErro = null;
+  async function salvarCorrecoes(silencioso = false) {
+    if (!ultimoResultado?.id || ultimoResultado.status !== 'concluido') return;
+    if (!alterado && silencioso) return;
 
-        if (dados.status !== 'processando') {
-          return dados;
-        }
+    const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(ultimoResultado.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: ultimoResultado.value })
+    });
 
-        if (i > 0 && i % 8 === 0) {
-          status(`Arquivo recebido. ID: ${id}\nProcessando... (${Math.round((i * intervalo) / 1000)}s)`);
-        }
-      } catch (err) {
-        ultimoErro = err;
-        if (err.status !== 404 && err.status !== 409 && !err.status) {
-          throw err;
-        }
-      }
-    }
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) throw new Error(dados.erro || 'Não foi possível salvar as correções.');
 
-    if (ultimoErro) throw ultimoErro;
-    throw new Error('Tempo limite aguardando a conclusão da transcrição.');
+    ultimoResultado = dados;
+    alterado = false;
+    atualizarJson();
+    if (!silencioso) status('Correções salvas com sucesso.', 'success');
   }
 
   async function baixarPlanilha(formato, botao) {
-    if (!ultimoResultado?.id || ultimoResultado.status !== 'concluido') return;
-
+    if (!ultimoResultado?.id) return;
     const textoOriginal = botao.textContent;
     botao.disabled = true;
     botao.textContent = 'Gerando...';
 
     try {
-      const id = ultimoResultado.id;
-      const resposta = await fetch(
-        `/api/transcricoes/${encodeURIComponent(id)}/planilha?formato=${encodeURIComponent(formato)}`,
-        { cache: 'no-store' }
-      );
-
+      await salvarCorrecoes(true);
+      const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(ultimoResultado.id)}/planilha?formato=${encodeURIComponent(formato)}`, { cache: 'no-store' });
       if (!resposta.ok) {
-        let mensagem = `Falha ao gerar ${formato.toUpperCase()} (${resposta.status}).`;
-        try {
-          const dados = await resposta.json();
-          if (dados?.erro) mensagem = dados.erro;
-        } catch {
-        }
-        throw new Error(mensagem);
+        const dados = await resposta.json().catch(() => ({}));
+        throw new Error(dados.erro || `Falha ao gerar ${formato.toUpperCase()}.`);
       }
 
       const blob = await resposta.blob();
       const disposicao = resposta.headers.get('Content-Disposition') || '';
-      const nomeEncontrado = disposicao.match(/filename="?([^";]+)"?/i);
-      const nomeArquivo = nomeEncontrado?.[1] || `${ultimoResultado.tipo || 'transcricao'}-${id}.${formato}`;
-
+      const encontrado = disposicao.match(/filename="?([^";]+)"?/i);
+      const nome = encontrado?.[1] || `transcricao.${formato}`;
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = nomeArquivo;
+      link.download = nome;
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
-
-      status(`Transcrição concluída. Arquivo ${formato.toUpperCase()} gerado com sucesso.`, 'success');
-    } catch (err) {
-      status(err.message || `Erro ao gerar ${formato.toUpperCase()}.`, 'error');
+      setTimeout(() => URL.revokeObjectURL(url), 500);
+      status(`Arquivo ${formato.toUpperCase()} gerado com as correções atuais.`, 'success');
+    } catch (erro) {
+      status(erro.message || 'Erro ao gerar arquivo.', 'error');
     } finally {
       botao.textContent = textoOriginal;
-      botao.disabled = ultimoResultado?.status !== 'concluido';
+      botao.disabled = false;
     }
   }
 
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (!arquivo.files[0]) return;
+  async function esperarTranscricao(id) {
+    const intervalo = 500;
+    const tentativas = 240;
+
+    for (let i = 0; i < tentativas; i++) {
+      const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(id)}`, { cache: 'no-store' });
+      if (!resposta.ok) throw new Error(`Falha ao consultar a transcrição (${resposta.status}).`);
+      const dados = await resposta.json();
+      if (dados.status === 'concluido' || dados.status === 'erro') return dados;
+      status(`Arquivo recebido. Processando... ${Math.round((i * intervalo) / 1000)}s`);
+      await new Promise(resolve => setTimeout(resolve, intervalo));
+    }
+    throw new Error('Tempo limite aguardando o processamento.');
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const file = arquivo.files[0];
+    if (!file) return;
 
     enviar.disabled = true;
+    habilitarResultado(false);
     ultimoResultado = null;
-    habilitarExportacao(false);
     resultadoEl.innerHTML = '<div class="empty">Processando...</div>';
-    resumoEl.innerHTML = '';
+    detalhes.hidden = true;
     jsonPreview.hidden = true;
+    pdfFrame.hidden = true;
+    pdfFrame.src = 'about:blank';
+    pdfEmpty.hidden = false;
+    pdfMeta.textContent = 'Aguardando processamento.';
     status('Enviando arquivo...');
 
     try {
-      const fd = new FormData(form);
-      const upload = await fetch('/api/transcricoes', { method: 'POST', body: fd });
-      const inicio = await upload.json();
-      if (!upload.ok) throw new Error(inicio.erro || 'Falha no upload.');
+      const formData = new FormData(form);
+      const resposta = await fetch('/api/transcricoes', { method: 'POST', body: formData });
+      const inicio = await resposta.json().catch(() => ({}));
+      if (!resposta.ok) throw new Error(inicio.erro || `Falha no envio (${resposta.status}).`);
 
-      status(`Arquivo recebido. ID: ${inicio.id}\nProcessando...`);
       const dados = await esperarTranscricao(inicio.id);
-
+      if (dados.status === 'erro') throw new Error(dados.erro || 'Falha no processamento.');
       renderizar(dados);
-      if (dados.status === 'concluido') status('Transcrição concluída. Escolha XLSX, CSV ou JSON para gerar a planilha.', 'success');
-      else status(`Processamento terminou com status: ${dados.status}\n${dados.erro || ''}`, 'error');
-    } catch (err) {
-      status(err.message || 'Erro inesperado.', 'error');
+      status('Transcrição concluída. Revise, corrija e baixe a planilha.', 'success');
+    } catch (erro) {
+      status(erro.message || 'Erro inesperado.', 'error');
       resultadoEl.innerHTML = '<div class="empty">Não foi possível carregar o resultado.</div>';
-      habilitarExportacao(false);
+      habilitarResultado(false);
     } finally {
       enviar.disabled = false;
     }
   });
 
+  salvarBtn.addEventListener('click', () => salvarCorrecoes(false).catch(erro => status(erro.message, 'error')));
   xlsxBtn.addEventListener('click', () => baixarPlanilha('xlsx', xlsxBtn));
   csvBtn.addEventListener('click', () => baixarPlanilha('csv', csvBtn));
   jsonBtn.addEventListener('click', () => baixarPlanilha('json', jsonBtn));
