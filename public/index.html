@@ -230,10 +230,50 @@
   }
 
   async function consultar(id) {
-    const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(id)}`);
+    const resposta = await fetch(`/api/transcricoes/${encodeURIComponent(id)}`, { cache: 'no-store' });
     const dados = await resposta.json();
-    if (!resposta.ok) throw new Error(dados.erro || 'Falha ao consultar transcrição.');
+    if (!resposta.ok) {
+      const erro = new Error(dados.erro || `Falha ao consultar transcrição (${resposta.status}).`);
+      erro.status = resposta.status;
+      throw erro;
+    }
     return dados;
+  }
+
+  async function esperarTranscricao(id) {
+    // O processamento do OCR pode levar alguns segundos. Polling curto reduz
+    // a latência percebida sem alterar o processamento do backend.
+    const intervalo = 350;
+    const tentativas = 300;
+    let ultimoErro = null;
+
+    for (let i = 0; i < tentativas; i++) {
+      await new Promise(r => setTimeout(r, intervalo));
+
+      try {
+        const dados = await consultar(id);
+        ultimoErro = null;
+
+        if (dados.status !== 'processando') {
+          return dados;
+        }
+
+        if (i > 0 && i % 8 === 0) {
+          status(`Arquivo recebido. ID: ${id}\nProcessando... (${Math.round((i * intervalo) / 1000)}s)`);
+        }
+      } catch (err) {
+        // Um GET isolado não deve derrubar uma transcrição que continua sendo
+        // processada em background. Isso evita o falso erro observado no
+        // time-card-03 quando o JSON já está disponível no Postman.
+        ultimoErro = err;
+        if (err.status !== 404 && err.status !== 409 && !err.status) {
+          throw err;
+        }
+      }
+    }
+
+    if (ultimoErro) throw ultimoErro;
+    throw new Error('Tempo limite aguardando a conclusão da transcrição.');
   }
 
   form.addEventListener('submit', async e => {
@@ -252,12 +292,7 @@
       if (!upload.ok) throw new Error(inicio.erro || 'Falha no upload.');
 
       status(`Arquivo recebido. ID: ${inicio.id}\nProcessando...`);
-      let dados;
-      for (let i = 0; i < 120; i++) {
-        await new Promise(r => setTimeout(r, 1000));
-        dados = await consultar(inicio.id);
-        if (dados.status !== 'processando') break;
-      }
+      const dados = await esperarTranscricao(inicio.id);
 
       renderizar(dados);
       if (dados.status === 'concluido') status('Transcrição concluída.', 'success');
