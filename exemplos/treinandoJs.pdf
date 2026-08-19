@@ -1,0 +1,181 @@
+// const produtos = [
+//     { id: 1, nome: "Mouse", preco: 50 },
+//     { id: 2, nome: "Teclado", preco: 120 },
+//     { id: 3, nome: "Monitor", preco: 900 },
+//     { id: 4, nome: "Notebook", preco: 3500 }
+// ];
+
+
+
+// // usando metodo find, sintaxe
+// const find = produtos.find( (item) =>{
+//     return item.id === 3;
+// })
+
+// console.log(find);
+
+
+// //usando metódo filter, sintaxe
+// const filter = produtos.filter( (item) =>{
+//     return item.preco > 500;
+// })
+
+// console.log(filter);
+
+
+// //usando método map,sintaxe 
+// const map = produtos.map( (item) =>{
+//     if (item.preco > 150){
+//         return item.preco + ' está caro';
+//     }else {
+//         return item.preco + ' está barato';
+//     }
+// })
+
+// console.log(map);
+
+
+// //usando metódo some, sintaxe
+// const some = produtos.some( (item) => {
+//     return item.preco > 3000;
+// })
+
+// console.log(`some ${some}`);
+
+
+// //usando método every, sintaxe
+// const every = produtos.every( (item) => {
+//     return item.preco > 40
+// })
+
+// console.log(every)
+
+
+// //usando o método sort, sintaxe
+// const sort = produtos.sort( (a, b) => {
+//     return b.preco - a.preco 
+// })
+
+// console.log(sort)
+
+
+// //usando o método forEach, sintaxe
+// const fore = produtos.forEach( (item) =>{
+//     console.log(`Produto: ${item.nome} - R$ ${item.preco}`)
+// })
+
+
+
+// //usando o metódo reduce, sintaxe 
+// const total = produtos.reduce( (acumulador, item) => {
+//     return acumulador + item.preco
+// },0)
+
+// console.log(total)
+
+
+// const tdProd = produtos.reduce((acumulador, item) => {
+//     if (acumulador === ""){
+//         return item.nome
+//         //é usado para tratar o detalhe q estava iniciando com virgular vazia no inicio
+//     }
+//     return acumulador + ", " + item.nome
+// },"")
+
+// console.log( tdProd)
+
+
+// const precoMaior = produtos.reduce((acumulador, item) =>{
+//     if (item.preco > 100){
+//        return acumulador + 1
+//     }  return acumulador 
+    
+// },0)
+
+// console.log(" Preço maior q 100: " + precoMaior)
+
+
+
+
+
+
+
+
+
+const Notas = [
+    { nome: "Ana", nota: 8 },
+    { nome: "Carlos", nota: 5 },
+    { nome: "João", nota: 10 },
+    { nome: "Maria", nota: 8 },
+    { nome: "Pedro", nota: 5 }
+]
+
+
+const NotaAlunos = Notas.reduce((acumulador, item) => {
+   if (acumulador[item.nota] === undefined){
+    acumulador[item.nota] = 1
+   }else{
+    acumulador[item.nota] = acumulador[item.nota] + 1
+   }return acumulador
+}, {})
+
+console.log(NotaAlunos)
+
+
+
+const produtos = [
+    { id: 1, nome: "Mouse", preco: 50, estoque: 10 },
+    { id: 2, nome: "Teclado", preco: 120, estoque: 5 },
+    { id: 3, nome: "Monitor", preco: 900, estoque: 2 },
+    { id: 4, nome: "Notebook", preco: 3500, estoque: 1 },
+    { id: 5, nome: "Headset", preco: 22200, estoque: 0 }
+]
+
+
+const qtdEstoque = produtos.some((item) => {return item.estoque === 0})
+
+console.log(`Existe algum produto com estoque em 0? - ${qtdEstoque}`)
+
+
+
+const maisCaro = produtos.sort(  (a, b) => {return a.preco - b.preco})
+
+const carooo = produtos.reduce(  (acumulador, item) => {
+    if(acumulador.preco < item.preco){
+        acumulador = item
+    }return acumulador
+})
+
+console.log(carooo)
+
+// console.log(maisCaro[maisCaro.length-1])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const alunos = [
+//     { nome: "Ana", nota: 8 },
+//     { nome: "Carlos", nota: 5 },
+//     { nome: "João", nota: 10 },
+//     { nome: "Maria", nota: 7 }
+// ]
+
+
+
+// const aprovador = alunos.map( (item) => {
+//     return {nome: item.nome, aprovador: item.nota > 7}
+// })
+
+// console.log(aprovador)
