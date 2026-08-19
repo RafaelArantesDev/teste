@@ -21,7 +21,8 @@ Foi usado como parceiro de desenvolvimento durante praticamente todo o desafio, 
 - identificar requisitos mínimos ainda ausentes;
 - criar e ampliar testes de regressão;
 - revisar a limpeza de arquivos temporários e do repositório;
-- apoiar a documentação final.
+- apoiar a documentação final;
+- revisar a preparação do deploy e a configuração do serviço público.
 
 A IA não foi tratada como fonte de verdade. Várias respostas foram confrontadas com os PDFs e com a execução real da aplicação, e algumas abordagens precisaram ser descartadas.
 
@@ -52,6 +53,16 @@ Usados no fallback de OCR para PDFs escaneados ou cuja camada textual não apres
 ### Docker / Docker Compose
 
 Usados para criar um ambiente reproduzível de execução. Durante o desenvolvimento houve inclusive um problema inicial em que o comando `docker` não estava disponível na máquina; após a instalação/configuração, o build foi validado e a aplicação iniciou corretamente na porta 3000.
+
+### Render
+
+Usado para publicar a versão final a partir do mesmo `Dockerfile` validado localmente. O deploy foi configurado como Web Service, com health check em `/healthz`, porta fornecida pelo ambiente e bind do Express em `0.0.0.0`.
+
+A aplicação publicada foi validada em:
+
+`https://quick-filler-rafael.onrender.com`
+
+Foram repetidos pela URL pública testes de interface, health check, upload, processamento, OCR, edição e exportação.
 
 ### Navegador / interface da aplicação
 
@@ -127,6 +138,7 @@ Entre os pontos reescritos ou direcionados manualmente:
 - inclusão da geração de planilhas depois que foi identificado que o endpoint ainda retornava `501`/TODO;
 - inclusão dos botões de exportação no frontend para tornar a funcionalidade utilizável no fluxo real;
 - atualização do Docker para uma versão do Node compatível com as dependências;
+- preparação do servidor e health check para a porta fornecida pelo ambiente de deploy;
 - limpeza de scripts, artefatos temporários e PNGs de OCR que estavam poluindo o repositório;
 - revisão do fluxo de edição para permitir correção humana antes da exportação.
 
@@ -182,7 +194,7 @@ Também há menor confiança em:
 - heurística que decide entre texto nativo e OCR;
 - associação semântica quando um layout desconhecido contém rótulos/números parecidos com um layout conhecido;
 - comportamento sob alta concorrência, porque o projeto não possui teste de carga;
-- deploy público real, porque uma URL pública não pôde ser confirmada nesta revisão;
+- estabilidade/performance do plano gratuito do Render para OCR pesado ou vários usuários simultâneos;
 - segurança para documentos reais sensíveis, pois autenticação/autorização não fazem parte da solução atual.
 
 Por isso a solução deliberadamente mantém a revisão humana no fluxo e evita transformar informação incerta em dado aparentemente confiável.
@@ -201,6 +213,8 @@ Os testes surgiram principalmente de falhas observadas durante o desenvolvimento
 - documento manuscrito: manter mês/ano desconhecidos quando não são legíveis.
 
 Além dos testes automatizados, os PDFs foram enviados pela interface e conferidos visualmente em várias etapas. Também foram testados health check, execução via Docker, arquivos de saída e comportamento da interface após as correções.
+
+Na etapa final, os principais fluxos foram repetidos pela aplicação publicada no Render e funcionaram corretamente.
 
 ## 9. O que eu faria em seguida
 
