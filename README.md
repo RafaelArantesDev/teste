@@ -10,13 +10,13 @@ Aplicação web para receber holerites e cartões de ponto em PDF, extrair infor
 
 ### 2. URL da aplicação publicada
 
-**Aplicação:** https://quick-filler-rafael.onrender.com
+**Aplicação:** https://quick-filler-rafael-910248826416.southamerica-east1.run.app
 
-**Health check:** https://quick-filler-rafael.onrender.com/healthz
+**Health check:** https://quick-filler-rafael-910248826416.southamerica-east1.run.app/healthz
 
-O deploy foi validado no Render com frontend, backend, upload, processamento, OCR, edição dos dados e exportação de arquivos.
+O deploy final foi validado no **Google Cloud Run** usando o mesmo `Dockerfile` do projeto. Foram testados pela URL pública frontend, backend, upload, processamento, OCR, edição manual e exportação.
 
-> Observação: a aplicação utiliza a instância gratuita do Render. Após períodos de inatividade o serviço pode entrar em suspensão e a primeira requisição pode levar cerca de 50 segundos ou mais para responder.
+> **Observação de desempenho do ambiente publicado:** nos documentos que exigem OCR mais pesado, o processamento no Cloud Run pode levar aproximadamente **40 a 90 segundos**. Essa latência foi observada **após o deploy**; nos testes locais/Docker esse comportamento de espera prolongada não foi o padrão observado. A aplicação permanece assíncrona: o upload retorna um ID e a interface acompanha o status até a conclusão.
 
 ### 3. Documentação da solução
 
