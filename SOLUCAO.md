@@ -4,13 +4,29 @@ Este documento descreve como executar a aplicação, as principais decisões té
 
 ## 1. Aplicação publicada
 
-**URL pública:** https://quick-filler-rafael.onrender.com
+**URL pública:** https://quick-filler-rafael-910248826416.southamerica-east1.run.app
 
-**Health check:** https://quick-filler-rafael.onrender.com/healthz
+**Health check:** https://quick-filler-rafael-910248826416.southamerica-east1.run.app/healthz
 
-O deploy foi realizado no Render usando o `Dockerfile` do projeto. A aplicação foi validada na URL pública com os fluxos principais: carregamento do frontend, health check, upload de PDFs, processamento, OCR quando necessário, revisão manual e exportação dos resultados.
+O deploy final foi realizado no **Google Cloud Run**, na região `southamerica-east1`, usando o mesmo `Dockerfile` validado localmente. A aplicação foi testada pela URL pública com frontend, health check, upload de PDFs, processamento, OCR, revisão manual e exportação.
 
-A instância utilizada é a modalidade gratuita do Render. Após períodos de inatividade o serviço pode entrar em suspensão; por isso, a primeira requisição depois de um período sem uso pode levar aproximadamente 50 segundos ou mais para responder.
+A configuração final do serviço foi mantida conservadora para a arquitetura atual:
+
+- 1 vCPU;
+- 1 GiB de memória;
+- máximo de 1 instância;
+- acesso público;
+- CPU sem throttling após a resposta HTTP, necessária porque o OCR continua em background depois que o `POST` retorna `202`.
+
+### Latência observada após o deploy
+
+Nos documentos que exigem OCR mais pesado, como alguns PDFs escaneados de holerite e cartão de ponto, o processamento no ambiente publicado apresentou tempo aproximado de **40 a 90 segundos** até chegar ao estado `concluido`.
+
+Essa demora foi observada **somente após o deploy em infraestrutura serverless**. Durante os testes locais e via Docker, a espera prolongada nessa faixa não foi o comportamento padrão observado.
+
+O processamento continua assíncrono: o upload não fica aberto aguardando o OCR. A API retorna o ID da transcrição e a interface consulta seu status até a conclusão.
+
+Durante a preparação da entrega, uma implantação anterior no Render apresentou falhas `502` em documentos com OCR mais pesado. A migração para Cloud Run e a desativação do CPU throttling permitiram processar os casos que antes falhavam, ainda que com maior latência no ambiente publicado.
 
 ## 2. Como executar
 
@@ -122,7 +138,7 @@ O resultado automático não é tratado como verdade absoluta. O frontend exibe 
 
 O `POST` retorna `202` e um UUID. O estado fica temporariamente em memória (`Map`) e o cliente consulta o resultado pelo ID.
 
-Para o escopo do desafio isso evita adicionar banco, Redis e fila sem necessidade. A limitação dessa decisão está documentada na seção de produção.
+Para o escopo do desafio isso evita adicionar banco, Redis e fila sem necessidade. Em ambiente serverless, essa decisão exige atenção à disponibilidade de CPU após a resposta; no Cloud Run o serviço foi configurado sem CPU throttling para permitir a conclusão do OCR em background.
 
 ### 4.8 Validação real do PDF
 
@@ -132,11 +148,13 @@ Além do MIME recebido no multipart, o arquivo salvo é inspecionado com `file-t
 
 Foi escolhida a imagem Node 22 porque dependências atuais do projeto exigem uma versão moderna do Node. O Compose expõe a aplicação na porta 3000 e monta os diretórios temporários utilizados pelo processamento.
 
-### 4.10 Deploy no Render
+### 4.10 Deploy no Google Cloud Run
 
-O serviço publicado usa o mesmo `Dockerfile` validado localmente. O Render fornece a porta por variável de ambiente, e o servidor foi preparado para escutar em `0.0.0.0`. O health check configurado é `/healthz`.
+A versão final publicada usa Cloud Run com o mesmo container validado localmente. A plataforma fornece a porta por variável de ambiente, enquanto o servidor escuta em `0.0.0.0`.
 
-Essa abordagem reduz diferenças entre o ambiente local e o ambiente publicado.
+A migração para Cloud Run ocorreu após testes no Render indicarem que documentos dependentes de OCR mais pesado podiam permanecer em processamento e retornar `502`. No Cloud Run, a primeira implantação apresentou comportamento semelhante enquanto a CPU era limitada depois da resposta HTTP. Após configurar CPU sempre disponível para a instância durante sua vida útil, os documentos previamente problemáticos passaram a concluir o processamento.
+
+Essa experiência também evidencia uma limitação da arquitetura atual: tarefas em background combinam melhor com workers/fila dedicados do que com execução serverless baseada apenas em requisições.
 
 ## 5. API principal
 
@@ -207,12 +225,13 @@ Além da suíte automatizada, esses arquivos foram usados repetidamente para val
 - **4 layouts/famílias de cartão de ponto** representados no conjunto principal.
 - **3 formatos de exportação** exercitados pela funcionalidade: XLSX, CSV e JSON.
 - **Deploy público validado** com os dois tipos documentais e o fluxo de exportação.
+- **40 a 90 segundos** de processamento observados em alguns documentos com OCR pesado **somente no ambiente publicado**.
 
 Não é apresentada uma porcentagem artificial de “acurácia do OCR”. O conjunto disponível é pequeno e heterogêneo, e uma porcentagem calculada apenas sobre esses exemplos daria uma impressão de generalização que o projeto não consegue demonstrar. Da mesma forma, o projeto não possui instrumentação de cobertura de linhas, portanto não é declarado um percentual de code coverage sem medi-lo.
 
 ## 7. Validação manual de entrega
 
-A versão final foi validada localmente e na URL pública. O checklist utilizado foi:
+A versão final foi validada localmente, via Docker e pela URL pública. O checklist utilizado foi:
 
 1. `GET /healthz` retorna HTTP 200.
 2. Interface abre na raiz.
@@ -224,7 +243,8 @@ A versão final foi validada localmente e na URL pública. O checklist utilizado
 8. Campo/dia não reconhecido pode ser preenchido manualmente nos casos suportados.
 9. Alterações podem ser salvas.
 10. XLSX, CSV e JSON podem ser gerados a partir do resultado revisado.
-11. Os fluxos principais foram repetidos pela URL pública do Render.
+11. Os documentos que haviam falhado no primeiro provedor foram repetidos no Cloud Run após o ajuste de CPU e concluíram o processamento.
+12. A maior latência de OCR foi registrada como característica do ambiente publicado, e não como comportamento equivalente observado localmente.
 
 Para repetir localmente:
 
@@ -243,7 +263,7 @@ As transcrições ficam em `Map`. Reiniciar a aplicação perde os registros. Um
 
 ### Fila de processamento
 
-O processamento é assíncrono para o cliente, mas não existe uma fila distribuída. Em maior volume seria adequado usar uma fila com workers, controle de concorrência, retry e dead-letter strategy.
+O processamento é assíncrono para o cliente, mas não existe uma fila distribuída. Em maior volume seria adequado usar uma fila com workers, controle de concorrência, retry e dead-letter strategy. Essa melhoria também removeria a dependência de manter CPU disponível no processo web depois da resposta `202`.
 
 ### Escalabilidade horizontal
 
@@ -261,9 +281,9 @@ Existem logs de execução, mas não métricas operacionais, tracing, dashboard,
 
 Uma implantação real deveria acrescentar políticas de autenticação, rate limiting, headers de segurança, gestão de segredos, TLS na borda, auditoria e políticas de retenção adequadas à natureza dos documentos.
 
-### Limitações do plano gratuito do Render
+### Limitações do ambiente serverless
 
-A instância pode entrar em suspensão por inatividade e possui recursos reduzidos. Além disso, a solução atual não depende de persistência local durável: filesystem e memória não devem ser tratados como armazenamento permanente em produção.
+OCR é uma operação relativamente pesada para execução serverless. A solução atual funciona no Cloud Run com CPU sem throttling e apenas uma instância, mas não possui fila, retry distribuído ou coordenação de jobs. A latência observada em alguns documentos publicados reforça que, para uso real e concorrente, API e OCR deveriam ser separados.
 
 ### Generalização para layouts desconhecidos
 
@@ -275,8 +295,10 @@ Ficou de fora uma base anotada (“ground truth”) grande o suficiente para med
 
 ### CI/CD
 
-A suíte pode ser executada por `npm test` e o Render está configurado para deploy a partir da branch principal, mas uma pipeline completa de CI com testes obrigatórios antes do deploy não faz parte da solução atual.
+A suíte pode ser executada por `npm test`, mas uma pipeline completa de CI com testes obrigatórios antes do deploy não faz parte da solução atual. O deploy final foi executado no Cloud Run a partir do código-fonte/container do projeto.
 
 ## 9. Principal risco técnico
 
 O ponto mais sensível continua sendo a interpretação de PDFs escaneados e layouts não vistos. A solução reduz o risco usando fallback OCR, regras conservadoras e revisão humana, mas não elimina a incerteza inerente ao reconhecimento de documentos heterogêneos.
+
+Do ponto de vista operacional, o segundo maior risco é executar OCR pesado como tarefa em background no mesmo serviço web. Para um produto real, a evolução mais importante seria mover esse processamento para workers com fila e persistência durável.
